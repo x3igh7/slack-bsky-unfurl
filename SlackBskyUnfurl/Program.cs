@@ -1,3 +1,6 @@
+using SlackBskyUnfurl.Services;
+using SlackBskyUnfurl.Services.Interfaces;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -6,6 +9,17 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddScoped<ISlackService, SlackService>();
+builder.Services.AddScoped<IBlueSkyService, BlueSkyService>();
+
+builder.Services.AddCors(options => options.AddDefaultPolicy(policyBuilder =>
+    {
+        policyBuilder
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    }));
 
 var app = builder.Build();
 
