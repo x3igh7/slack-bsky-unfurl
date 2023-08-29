@@ -21,9 +21,10 @@ public class SlackController : Controller {
     }
 
 
-    [HttpPost("event")]
-    public IActionResult Event([FromBody] MessageEvent message) {
-        this._slack.HandleMessage(message);
-        return this.Ok("test");
+    [HttpPost("events/message")]
+    public IActionResult Event([FromBody] UrlVerification message) {
+        return this.Ok(message.Challenge);
+        //this._slack.HandleMessageAsync(message);
+        //return this.Ok("test");
     }
 }

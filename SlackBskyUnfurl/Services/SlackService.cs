@@ -11,12 +11,14 @@ namespace SlackBskyUnfurl.Services
         private readonly IBlueSkyService _blueSky;
 
         public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration) {
-            var slackKey = configuration["SlackToken"];
-            this.Client = new SlackServiceBuilder().UseApiToken(slackKey).GetApiClient();
             this._blueSky = blueSkyService;
+
+            var clientSecret = configuration["SlackClientSecret"];
+            var signingSecret = configuration["SlackSigningSecret"];
+            this.Client = new SlackServiceBuilder().UseApiToken(clientSecret).GetApiClient();
         }
 
-        public void HandleMessage(MessageEvent message) {
+        public async void HandleMessageAsync(MessageEvent message) {
             if (!message.Text.Contains("bsky.app")) {
                 return;
             }

@@ -4,6 +4,6 @@ namespace SlackBskyUnfurl.Services.Interfaces
 {
     public interface ISlackService
     {
-        void HandleMessage(MessageEvent message);
+        void HandleMessageAsync(MessageEvent message);
     }
 }

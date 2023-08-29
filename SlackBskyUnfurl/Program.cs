@@ -10,8 +10,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddScoped<ISlackService, SlackService>();
-builder.Services.AddScoped<IBlueSkyService, BlueSkyService>();
+builder.Services.AddSingleton<ISlackService, SlackService>();
+builder.Services.AddSingleton<IBlueSkyService, BlueSkyService>();
 
 builder.Services.AddCors(options => options.AddDefaultPolicy(policyBuilder =>
     {
