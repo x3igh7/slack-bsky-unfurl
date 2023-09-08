@@ -1,38 +1,171 @@
-﻿using SlackBskyUnfurl.Services.Interfaces;
+﻿using Newtonsoft.Json;
+using SlackBskyUnfurl.Models;
+using SlackBskyUnfurl.Models.Bsky.Responses;
+using SlackBskyUnfurl.Services.Interfaces;
 using SlackNet;
+using SlackNet.Blocks;
 using SlackNet.Events;
-using System.Text.RegularExpressions;
-using SlackNet.WebApi;
 
-namespace SlackBskyUnfurl.Services
-{
-    public class SlackService : ISlackService {
-        public ISlackApiClient Client;
-        private readonly IBlueSkyService _blueSky;
+namespace SlackBskyUnfurl.Services;
 
-        public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration) {
-            this._blueSky = blueSkyService;
+public class SlackService : ISlackService {
+    private readonly IBlueSkyService _blueSky;
+    public ISlackApiClient Client;
 
-            var clientSecret = configuration["SlackClientSecret"];
-            var signingSecret = configuration["SlackSigningSecret"];
-            this.Client = new SlackServiceBuilder().UseApiToken(clientSecret).GetApiClient();
+    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration) {
+        this._blueSky = blueSkyService;
+
+        var clientSecret = configuration["SlackClientSecret"];
+        var signingSecret = configuration["SlackSigningSecret"];
+        this.Client = new SlackServiceBuilder().UseApiToken(clientSecret).GetApiClient();
+    }
+
+    public async Task HandleIncomingEvent(dynamic slackEvent) {
+        if (slackEvent.type == "url_verification") {
+            return;
         }
 
-        public async void HandleMessageAsync(MessageEvent message) {
-            if (!message.Text.Contains("bsky.app")) {
+        if (slackEvent.type == "link_shared") {
+            var linkSharedEvent = JsonConvert.DeserializeObject<LinkShared>(slackEvent);
+            if (linkSharedEvent == null) {
                 return;
             }
 
-            var parser = new Regex(@"\b(?:https?://|www\.)\S+\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-            var matches = parser.Matches(message.Text);
-            foreach (Match match in matches) {
-                var url = match.Value;
-                var unfurlResult = this._blueSky.HandleUnfurl(url);
-                this.Client.Chat.PostMessage(new Message {
-                    Channel = message.Channel,
-                    Text = unfurlResult,
-                });
-            }
+            await this.HandleLinkSharedAsync(linkSharedEvent);
         }
+    }
+
+    public async Task HandleLinkSharedAsync(LinkShared linkSharedEvent) {
+        if (!linkSharedEvent.Links.Any(l => l.Url.Contains("bsky.app"))) {
+            return;
+        }
+
+        foreach (var link in linkSharedEvent.Links) {
+            var unfurlResult = await this._blueSky.HandleGetPostThreadRequest(link.Url);
+            var unfurl = new Attachment {
+                Blocks = new List<Block>()
+            };
+
+            var postTextBlocks = this.CreatePostTextBlocks(unfurlResult);
+            postTextBlocks.ToList().ForEach(b => unfurl.Blocks.Add(b));
+
+            if (unfurlResult.Thread.Post.Embed.External != null) {
+                var externalBlock = CreateExternalBlock(unfurlResult);
+                unfurl.Blocks.Add(externalBlock);
+            }
+
+            if (unfurlResult.Thread.Post.Embed.Images != null && unfurlResult.Thread.Post.Embed.Images.Any()) {
+                foreach (var image in unfurlResult.Thread.Post.Embed.Images) {
+                    unfurl.Blocks.Add(new ImageBlock {
+                        ImageUrl = image.Fullsize,
+                        AltText = image.Alt
+                    });
+                }
+            }
+
+            if (unfurlResult.Thread.Post.Embed.Record != null) {
+                unfurl.Blocks.Add(new DividerBlock());
+                var externalRecordView = unfurlResult.Thread.Post.Embed.Record;
+
+                // Add block for sub record author
+                var userBlock = new SectionBlock {
+                    Text = new Markdown(
+                        $@"{Link.Url($"https://bsky.app/profile/{externalRecordView.Author.Handle}", externalRecordView.Author.DisplayName)}"),
+                    Accessory = new Image {
+                        ImageUrl = externalRecordView.Author.Avatar
+                    }
+                };
+
+                unfurl.Blocks.Add(userBlock);
+
+                // Add block for sub record text
+                var contentBlock = new SectionBlock {
+                    Text = new Markdown($@"{externalRecordView.Value.Text}")
+                };
+
+                unfurl.Blocks.Add(contentBlock);
+
+                // Add link if the sub record references yet another record
+                if (externalRecordView.Embeds.Any(e => e.Record != null)) {
+                    var recordEmbed = externalRecordView.Embeds.FirstOrDefault(e => e.Record != null);
+                    if (recordEmbed != null) {
+                        var linkToPost = new SectionBlock {
+                            Text = new Markdown($@"{new Link(recordEmbed?.Record?.Uri, recordEmbed?.Record?.Uri)}")
+                        };
+                        unfurl.Blocks.Add(linkToPost);
+                    }
+                }
+
+                // If the sub record has an external link, add it
+                if (externalRecordView.Embeds.Any(e => e.External != null)) {
+                    var externalEmbed = externalRecordView.Embeds.FirstOrDefault(e => e.External != null);
+                    if (externalEmbed != null) {
+                        var linkToPost = new SectionBlock {
+                            Text = new Markdown(
+                                $@"{Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)} \ {externalEmbed.External.Description}"),
+                            Accessory = new Image {
+                                ImageUrl = externalEmbed.External.Thumb,
+                                AltText = externalEmbed.External.Title
+                            }
+                        };
+                        unfurl.Blocks.Add(linkToPost);
+                    }
+                }
+
+                // If the sub record has images, add them
+                if (externalRecordView.Embeds.Any(e => e.Images != null && e.Images.Any())) {
+                    var imagesEmbed = externalRecordView.Embeds.Where(e => e.Images != null && e.Images.Any()).ToList();
+                    if (imagesEmbed.Any()) {
+                        foreach (var image in imagesEmbed.Where(images => images.Images != null && images.Images.Any())
+                                     .SelectMany(images => images.Images ?? Array.Empty<ImageView>())) {
+                            unfurl.Blocks.Add(new ImageBlock {
+                                ImageUrl = image.Fullsize,
+                                AltText = image.Alt
+                            });
+                        }
+                    }
+                }
+            }
+
+            var unfurls = new Dictionary<string, Attachment> {
+                {link.Url, unfurl}
+            };
+
+            await this.Client.Chat.Unfurl(
+                linkSharedEvent.Channel,
+                linkSharedEvent.MessageTs,
+                unfurls
+            );
+        }
+    }
+
+    protected static SectionBlock CreateExternalBlock(GetPostThreadResponse unfurlResult) {
+        var externalBlock = new SectionBlock {
+            Text = new Markdown(
+                $@"{Link.Url(unfurlResult.Thread.Post.Embed.External.Uri, unfurlResult.Thread.Post.Embed.External.Title)} \ {unfurlResult.Thread.Post.Embed.External.Description}"),
+            Accessory = new Image {
+                ImageUrl = unfurlResult.Thread.Post.Embed.External.Thumb,
+                AltText = unfurlResult.Thread.Post.Embed.External.Title
+            }
+        };
+        return externalBlock;
+    }
+
+    protected IEnumerable<Block> CreatePostTextBlocks(GetPostThreadResponse postThread) {
+        var userBlock = new SectionBlock {
+            Text = new Markdown(
+                $@"{Link.Url($"https://bsky.app/profile/{postThread.Thread.Post.Author.Handle}", postThread.Thread.Post.Author.DisplayName)}"),
+            Accessory = new Image {
+                ImageUrl = postThread.Thread.Post.Author.Avatar
+            }
+        };
+        var contentBlock = new SectionBlock {
+            Text = new Markdown($@"{postThread.Thread.Post.Record.Text}")
+        };
+
+        return new List<Block> {
+            userBlock,
+            contentBlock
+        };
     }
 }

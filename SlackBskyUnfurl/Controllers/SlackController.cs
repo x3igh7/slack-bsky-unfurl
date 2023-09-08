@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using SlackBskyUnfurl.Services.Interfaces;
-using SlackNet.Events;
 
 namespace SlackBskyUnfurl.Controllers;
 
@@ -8,11 +8,11 @@ namespace SlackBskyUnfurl.Controllers;
 [ApiController]
 public class SlackController : Controller {
     private readonly ILogger<SlackController> _logger;
-    private readonly ISlackService _slack;
+    private readonly ISlackService _slackService;
 
-    public SlackController(ISlackService slack, ILogger<SlackController> logger) {
+    public SlackController(ISlackService slackService, ILogger<SlackController> logger) {
         this._logger = logger;
-        this._slack = slack;
+        this._slackService = slackService;
     }
 
     [HttpGet("test")]
@@ -21,10 +21,11 @@ public class SlackController : Controller {
     }
 
 
-    [HttpPost("events/message")]
-    public IActionResult Event([FromBody] UrlVerification message) {
-        return this.Ok(message.Challenge);
-        //this._slack.HandleMessageAsync(message);
-        //return this.Ok("test");
+    [HttpPost("events/handle")]
+    public IActionResult Event([FromBody] string slackEvent) {
+        var jsonData = JsonConvert.DeserializeObject<dynamic>(slackEvent);
+        Task.Run(this._slackService.HandleIncomingEvent(jsonData));
+
+        return this.Ok();
     }
 }
