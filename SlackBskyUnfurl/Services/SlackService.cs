@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SlackBskyUnfurl.Models;
 using SlackBskyUnfurl.Models.Bsky.Responses;
 using SlackBskyUnfurl.Services.Interfaces;
@@ -20,9 +22,14 @@ public class SlackService : ISlackService {
         this.Client = new SlackServiceBuilder().UseApiToken(clientSecret).GetApiClient();
     }
 
-    public async Task HandleIncomingEvent(dynamic dynamicSlackEvent, string jsonEvent) {
-        if (dynamicSlackEvent.type == "link_shared") {
-            var linkSharedEvent = JsonConvert.DeserializeObject<LinkShared>(jsonEvent);
+    public async Task<string> HandleVerification(UrlVerification slackEvent) {
+        return slackEvent.Challenge;
+    }
+
+    public async Task HandleIncomingEvent(JsonElement dynamicSlackEvent) {
+        var slackEvent = JsonConvert.DeserializeObject<EventRequest>(dynamicSlackEvent.ToString());
+        if (slackEvent.Type == "link_shared") {
+            var linkSharedEvent = JsonConvert.DeserializeObject<LinkShared>(dynamicSlackEvent.ToString());
             if (linkSharedEvent == null) {
                 return;
             }
@@ -38,6 +45,9 @@ public class SlackService : ISlackService {
 
         foreach (var link in linkSharedEvent.Links) {
             var unfurlResult = await this._blueSky.HandleGetPostThreadRequest(link.Url);
+            if (unfurlResult == null) {
+                throw new InvalidOperationException("No result from post.");
+            }
             var unfurl = new Attachment {
                 Blocks = new List<Block>()
             };

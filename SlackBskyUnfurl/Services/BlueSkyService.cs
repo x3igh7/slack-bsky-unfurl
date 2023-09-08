@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using SlackBskyUnfurl.Models.Bsky;
+using SlackBskyUnfurl.Models.Bsky.Requests;
 using SlackBskyUnfurl.Models.Bsky.Responses;
 using SlackBskyUnfurl.Services.Interfaces;
 
@@ -22,11 +23,14 @@ public class BlueSkyService : IBlueSkyService {
 
         this.HttpClient = new HttpClient();
         this.HttpClient.BaseAddress = new Uri(BaseUri);
+
+        this.Authenticate().Wait();
     }
 
     protected async Task Authenticate() {
-        var result = await this.HttpClient.GetAsync(
-            $"com.atproto.server.createSession?identifier={Uri.EscapeDataString(this._bskyUsername)}&password={Uri.EscapeDataString(this._bskyAppPassword)}");
+        var sessionRequest = new CreateSessionRequest
+            { Identifier = this._bskyUsername, Password = this._bskyAppPassword };
+        var result = await this.HttpClient.PostAsJsonAsync("com.atproto.server.createSession", sessionRequest);
         this.SetSessionHeaders(result);
     }
 
@@ -49,7 +53,7 @@ public class BlueSkyService : IBlueSkyService {
         var username = Regex.Match(url, @"(?<=profile/).*?(?=/post)").Value;
         var resolvedHandle = await this.ResolveHandle(username);
 
-        var postId = Regex.Match(url, @"(?<=post/).*?").Value;
+        var postId = Regex.Match(url, @"(?<=post/).*").Value;
         var threadPost = await this.GetPostThread(resolvedHandle.Did, postId);
 
         return threadPost;
@@ -58,10 +62,14 @@ public class BlueSkyService : IBlueSkyService {
     public async Task<GetPostThreadResponse> GetPostThread(string did, string postId) {
         var postUri = $"at://{did}/app.bsky.feed.post/{postId}";
         var result =
-            await this.HttpClient.GetAsync($"com.atproto.post.getPostThread?uri={Uri.EscapeDataString(postUri)}");
+            await this.HttpClient.GetAsync($"app.bsky.feed.getPostThread?uri={Uri.EscapeDataString(postUri)}");
         if (result.StatusCode == HttpStatusCode.Unauthorized) {
             await this.Refresh();
             return await this.GetPostThread(did, postId);
+        }
+
+        if (!result.IsSuccessStatusCode) {
+            throw new InvalidOperationException("Failed to get post thread");
         }
 
         var getPostThreadResponse =

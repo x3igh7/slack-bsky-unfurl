@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Text.Json;
+using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using SlackBskyUnfurl.Services.Interfaces;
+using SlackNet.Events;
 
 namespace SlackBskyUnfurl.Controllers;
 
@@ -22,13 +25,15 @@ public class SlackController : Controller {
 
 
     [HttpPost("events/handle")]
-    public IActionResult Event([FromBody] string slackEvent) {
-        var jsonData = JsonConvert.DeserializeObject<dynamic>(slackEvent);
-        if (jsonData != null && jsonData.type == "url_verification")
-        {
-            return this.Ok(jsonData.challenge);
+    public async Task<IActionResult> Event([FromBody] JsonElement body) {
+        var request = JsonConvert.DeserializeObject<EventRequest>(body.ToString()); 
+        if (request.Type == "url_verification") {
+            var urlVerificationEvent = JsonConvert.DeserializeObject<UrlVerification>(body.ToString());
+            var result = await this._slackService.HandleVerification(urlVerificationEvent);
+            return this.Ok(result);
         }
-        Task.Run(this._slackService.HandleIncomingEvent(jsonData, slackEvent));
+
+        Task.Run(() => this._slackService.HandleIncomingEvent(body));
 
         return this.Ok();
     }
