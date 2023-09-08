@@ -24,7 +24,11 @@ public class SlackController : Controller {
     [HttpPost("events/handle")]
     public IActionResult Event([FromBody] string slackEvent) {
         var jsonData = JsonConvert.DeserializeObject<dynamic>(slackEvent);
-        Task.Run(this._slackService.HandleIncomingEvent(jsonData));
+        if (jsonData != null && jsonData.type == "url_verification")
+        {
+            return this.Ok(jsonData.challenge);
+        }
+        Task.Run(this._slackService.HandleIncomingEvent(jsonData, slackEvent));
 
         return this.Ok();
     }

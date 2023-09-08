@@ -20,13 +20,9 @@ public class SlackService : ISlackService {
         this.Client = new SlackServiceBuilder().UseApiToken(clientSecret).GetApiClient();
     }
 
-    public async Task HandleIncomingEvent(dynamic slackEvent) {
-        if (slackEvent.type == "url_verification") {
-            return;
-        }
-
-        if (slackEvent.type == "link_shared") {
-            var linkSharedEvent = JsonConvert.DeserializeObject<LinkShared>(slackEvent);
+    public async Task HandleIncomingEvent(dynamic dynamicSlackEvent, string jsonEvent) {
+        if (dynamicSlackEvent.type == "link_shared") {
+            var linkSharedEvent = JsonConvert.DeserializeObject<LinkShared>(jsonEvent);
             if (linkSharedEvent == null) {
                 return;
             }
