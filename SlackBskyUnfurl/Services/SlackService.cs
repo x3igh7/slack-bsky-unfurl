@@ -74,14 +74,17 @@ public class SlackService : ISlackService {
                     unfurl.Blocks.Add(externalBlock);
                 }
 
-                //if (unfurlResult.Thread.Post.Embed.Images != null && unfurlResult.Thread.Post.Embed.Images.Any()) {
-                //    foreach (var image in unfurlResult.Thread.Post.Embed.Images) {
-                //        unfurl.Blocks.Add(new ImageBlock {
-                //            ImageUrl = image.Fullsize,
-                //            AltText = image.Alt
-                //        });
-                //    }
-                //}
+                if (unfurlResult.Thread.Post.Embed.Images != null && unfurlResult.Thread.Post.Embed.Images.Any())
+                {
+                    foreach (var image in unfurlResult.Thread.Post.Embed.Images)
+                    {
+                        unfurl.Blocks.Add(new ImageBlock
+                        {
+                            ImageUrl = image.Fullsize,
+                            AltText = image.Alt
+                        });
+                    }
+                }
 
                 if (unfurlResult.Thread.Post.Embed.Record != null) {
                     unfurl.Blocks.Add(new DividerBlock());
@@ -91,9 +94,11 @@ public class SlackService : ISlackService {
                     var userBlock = new SectionBlock {
                         Text = new Markdown(
                             $@"{Link.Url($"https://bsky.app/profile/{externalRecordView.Author.Handle}", externalRecordView.Author.DisplayName)}"),
-                        //Accessory = new Image {
-                        //    ImageUrl = externalRecordView.Author.Avatar
-                        //}
+                        Accessory = new Image
+                        {
+                            ImageUrl = externalRecordView.Author.Avatar,
+                            AltText = externalRecordView.Author.DisplayName
+                        }
                     };
 
                     unfurl.Blocks.Add(userBlock);
@@ -123,30 +128,35 @@ public class SlackService : ISlackService {
                             var linkToPost = new SectionBlock {
                                 Text = new Markdown(
                                     $@"{Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)} \ {externalEmbed.External.Description}"),
-                                //Accessory = new Image {
-                                //    ImageUrl = externalEmbed.External.Thumb,
-                                //    AltText = externalEmbed.External.Title
-                                //}
+                                Accessory = new Image
+                                {
+                                    ImageUrl = externalEmbed.External.Thumb,
+                                    AltText = externalEmbed.External.Title
+                                }
                             };
                             unfurl.Blocks.Add(linkToPost);
                         }
                     }
 
-                    // If the sub record has images, add them
-                    //if (externalRecordView.Embeds.Any(e => e.Images != null && e.Images.Any())) {
-                    //    var imagesEmbed = externalRecordView.Embeds.Where(e => e.Images != null && e.Images.Any())
-                    //        .ToList();
-                    //    if (imagesEmbed.Any()) {
-                    //        foreach (var image in imagesEmbed
-                    //                     .Where(images => images.Images != null && images.Images.Any())
-                    //                     .SelectMany(images => images.Images ?? Array.Empty<ImageView>())) {
-                    //            unfurl.Blocks.Add(new ImageBlock {
-                    //                ImageUrl = image.Fullsize,
-                    //                AltText = image.Alt
-                    //            });
-                    //        }
-                    //    }
-                    //}
+                    //If the sub record has images, add them
+                    if (externalRecordView.Embeds.Any(e => e.Images != null && e.Images.Any()))
+                    {
+                        var imagesEmbed = externalRecordView.Embeds.Where(e => e.Images != null && e.Images.Any())
+                            .ToList();
+                        if (imagesEmbed.Any())
+                        {
+                            foreach (var image in imagesEmbed
+                                         .Where(images => images.Images != null && images.Images.Any())
+                                         .SelectMany(images => images.Images ?? Array.Empty<ImageView>()))
+                            {
+                                unfurl.Blocks.Add(new ImageBlock
+                                {
+                                    ImageUrl = image.Fullsize,
+                                    AltText = image.Alt
+                                });
+                            }
+                        }
+                    }
                 }
             }
 
@@ -172,30 +182,29 @@ public class SlackService : ISlackService {
     protected static SectionBlock CreateExternalBlock(GetPostThreadResponse unfurlResult) {
         var externalBlock = new SectionBlock {
             Text = new Markdown(
-                $@"{Link.Url(unfurlResult.Thread.Post.Embed.External.Uri, unfurlResult.Thread.Post.Embed.External.Title)} \ {unfurlResult.Thread.Post.Embed.External.Description}"),
-            //Accessory = new Image {
-            //    ImageUrl = unfurlResult.Thread.Post.Embed.External.Thumb,
-            //    AltText = unfurlResult.Thread.Post.Embed.External.Title
-            //}
+                $@"{Link.Url(unfurlResult.Thread.Post.Embed.External.Uri, unfurlResult.Thread.Post.Embed.External.Title)}{"\n"}{unfurlResult.Thread.Post.Embed.External.Description}"),
+            Accessory = new Image
+            {
+                ImageUrl = unfurlResult.Thread.Post.Embed.External.Thumb,
+                AltText = unfurlResult.Thread.Post.Embed.External.Title
+            }
         };
         return externalBlock;
     }
 
     protected IEnumerable<Block> CreatePostTextBlocks(GetPostThreadResponse postThread) {
-        var userBlock = new SectionBlock {
+        var mainTextBlock = new SectionBlock {
             Text = new Markdown(
-                $@"{Link.Url($"https://bsky.app/profile/{postThread.Thread.Post.Author.Handle}", postThread.Thread.Post.Author.DisplayName)}"),
-            //Accessory = new Image {
-            //    ImageUrl = postThread.Thread.Post.Author.Avatar
-            //}
-        };
-        var contentBlock = new SectionBlock {
-            Text = new Markdown($@"{postThread.Thread.Post.Record.Text}")
+                $@"{Link.Url($"https://bsky.app/profile/{postThread.Thread.Post.Author.Handle}", postThread.Thread.Post.Author.DisplayName)}{"\n"}{postThread.Thread.Post.Record.Text}"),
+            Accessory = new Image
+            {
+                ImageUrl = postThread.Thread.Post.Author.Avatar,
+                AltText = postThread.Thread.Post.Author.DisplayName
+            }
         };
 
         return new List<Block> {
-            userBlock,
-            contentBlock
+            mainTextBlock,
         };
     }
 }
