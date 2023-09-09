@@ -91,21 +91,14 @@ public class SlackService : ISlackService {
                     var externalRecordView = unfurlResult.Thread.Post.Embed.Record;
 
                     // Add block for sub record author
-                    var userBlock = new SectionBlock {
+                    var contentBlock = new SectionBlock {
                         Text = new Markdown(
-                            $@"{Link.Url($"https://bsky.app/profile/{externalRecordView.Author.Handle}", externalRecordView.Author.DisplayName)}"),
+                            $@"{Link.Url($"https://bsky.app/profile/{externalRecordView.Author.Handle}", externalRecordView.Author.DisplayName)}{"\n"}{externalRecordView.Value.Text}"),
                         Accessory = new Image
                         {
                             ImageUrl = externalRecordView.Author.Avatar,
                             AltText = externalRecordView.Author.DisplayName
                         }
-                    };
-
-                    unfurl.Blocks.Add(userBlock);
-
-                    // Add block for sub record text
-                    var contentBlock = new SectionBlock {
-                        Text = new Markdown($@"{externalRecordView.Value.Text}")
                     };
 
                     unfurl.Blocks.Add(contentBlock);
@@ -127,7 +120,7 @@ public class SlackService : ISlackService {
                         if (externalEmbed != null) {
                             var linkToPost = new SectionBlock {
                                 Text = new Markdown(
-                                    $@"{Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)} \ {externalEmbed.External.Description}"),
+                                    $@"{Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)}{"\n"}{externalEmbed.External.Description}"),
                                 Accessory = new Image
                                 {
                                     ImageUrl = externalEmbed.External.Thumb,
