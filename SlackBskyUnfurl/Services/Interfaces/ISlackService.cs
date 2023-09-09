@@ -7,6 +7,6 @@ namespace SlackBskyUnfurl.Services.Interfaces
     public interface ISlackService {
         Task<string> HandleVerification(UrlVerification slackEvent);
         Task HandleIncomingEvent(JsonElement dynamicSlackEvent);
-        Task HandleLinkSharedAsync(LinkShared message);
+        Task HandleLinkSharedAsync(Models.Slack.LinkShared message);
     }
 }

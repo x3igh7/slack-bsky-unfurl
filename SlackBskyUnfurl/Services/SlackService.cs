@@ -29,9 +29,17 @@ public class SlackService : ISlackService {
     }
 
     public async Task HandleIncomingEvent(JsonElement dynamicSlackEvent) {
-        var slackEvent = JsonConvert.DeserializeObject<EventRequest>(dynamicSlackEvent.ToString());
-        if (slackEvent.Type == "link_shared") {
-            var linkSharedEvent = JsonConvert.DeserializeObject<LinkShared>(dynamicSlackEvent.ToString());
+        var slackEvent = JsonConvert.DeserializeObject<EventCallback>(dynamicSlackEvent.ToString());
+        if (slackEvent.Event.Type == "link_shared") {
+            var json = dynamicSlackEvent.GetProperty("event").ToString();
+            Models.Slack.LinkShared linkSharedEvent = null;
+            try {
+                linkSharedEvent = JsonConvert.DeserializeObject<Models.Slack.LinkShared>(json.ToString());
+            }
+            catch (Exception e) {
+                throw new InvalidOperationException("Invalid json", e);
+            }
+            
             if (linkSharedEvent == null) {
                 return;
             }
@@ -40,7 +48,7 @@ public class SlackService : ISlackService {
         }
     }
 
-    public async Task HandleLinkSharedAsync(LinkShared linkSharedEvent) {
+    public async Task HandleLinkSharedAsync(Models.Slack.LinkShared linkSharedEvent) {
         if (!linkSharedEvent.Links.Any(l => l.Url.Contains("bsky.app"))) {
             return;
         }
@@ -59,79 +67,83 @@ public class SlackService : ISlackService {
             var postTextBlocks = this.CreatePostTextBlocks(unfurlResult);
             postTextBlocks.ToList().ForEach(b => unfurl.Blocks.Add(b));
 
-            if (unfurlResult.Thread.Post.Embed.External != null) {
-                var externalBlock = CreateExternalBlock(unfurlResult);
-                unfurl.Blocks.Add(externalBlock);
-            }
-
-            if (unfurlResult.Thread.Post.Embed.Images != null && unfurlResult.Thread.Post.Embed.Images.Any()) {
-                foreach (var image in unfurlResult.Thread.Post.Embed.Images) {
-                    unfurl.Blocks.Add(new ImageBlock {
-                        ImageUrl = image.Fullsize,
-                        AltText = image.Alt
-                    });
+            if (unfurlResult.Thread.Post.Embed != null) {
+                if (unfurlResult.Thread.Post.Embed.External != null) {
+                    var externalBlock = CreateExternalBlock(unfurlResult);
+                    unfurl.Blocks.Add(externalBlock);
                 }
-            }
 
-            if (unfurlResult.Thread.Post.Embed.Record != null) {
-                unfurl.Blocks.Add(new DividerBlock());
-                var externalRecordView = unfurlResult.Thread.Post.Embed.Record;
-
-                // Add block for sub record author
-                var userBlock = new SectionBlock {
-                    Text = new Markdown(
-                        $@"{Link.Url($"https://bsky.app/profile/{externalRecordView.Author.Handle}", externalRecordView.Author.DisplayName)}"),
-                    Accessory = new Image {
-                        ImageUrl = externalRecordView.Author.Avatar
-                    }
-                };
-
-                unfurl.Blocks.Add(userBlock);
-
-                // Add block for sub record text
-                var contentBlock = new SectionBlock {
-                    Text = new Markdown($@"{externalRecordView.Value.Text}")
-                };
-
-                unfurl.Blocks.Add(contentBlock);
-
-                // Add link if the sub record references yet another record
-                if (externalRecordView.Embeds.Any(e => e.Record != null)) {
-                    var recordEmbed = externalRecordView.Embeds.FirstOrDefault(e => e.Record != null);
-                    if (recordEmbed != null) {
-                        var linkToPost = new SectionBlock {
-                            Text = new Markdown($@"{new Link(recordEmbed?.Record?.Uri, recordEmbed?.Record?.Uri)}")
-                        };
-                        unfurl.Blocks.Add(linkToPost);
+                if (unfurlResult.Thread.Post.Embed.Images != null && unfurlResult.Thread.Post.Embed.Images.Any()) {
+                    foreach (var image in unfurlResult.Thread.Post.Embed.Images) {
+                        unfurl.Blocks.Add(new ImageBlock {
+                            ImageUrl = image.Fullsize,
+                            AltText = image.Alt
+                        });
                     }
                 }
 
-                // If the sub record has an external link, add it
-                if (externalRecordView.Embeds.Any(e => e.External != null)) {
-                    var externalEmbed = externalRecordView.Embeds.FirstOrDefault(e => e.External != null);
-                    if (externalEmbed != null) {
-                        var linkToPost = new SectionBlock {
-                            Text = new Markdown(
-                                $@"{Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)} \ {externalEmbed.External.Description}"),
-                            Accessory = new Image {
-                                ImageUrl = externalEmbed.External.Thumb,
-                                AltText = externalEmbed.External.Title
+                if (unfurlResult.Thread.Post.Embed.Record != null) {
+                    unfurl.Blocks.Add(new DividerBlock());
+                    var externalRecordView = unfurlResult.Thread.Post.Embed.Record;
+
+                    // Add block for sub record author
+                    var userBlock = new SectionBlock {
+                        Text = new Markdown(
+                            $@"{Link.Url($"https://bsky.app/profile/{externalRecordView.Author.Handle}", externalRecordView.Author.DisplayName)}"),
+                        Accessory = new Image {
+                            ImageUrl = externalRecordView.Author.Avatar
+                        }
+                    };
+
+                    unfurl.Blocks.Add(userBlock);
+
+                    // Add block for sub record text
+                    var contentBlock = new SectionBlock {
+                        Text = new Markdown($@"{externalRecordView.Value.Text}")
+                    };
+
+                    unfurl.Blocks.Add(contentBlock);
+
+                    // Add link if the sub record references yet another record
+                    if (externalRecordView.Embeds.Any(e => e.Record != null)) {
+                        var recordEmbed = externalRecordView.Embeds.FirstOrDefault(e => e.Record != null);
+                        if (recordEmbed != null) {
+                            var linkToPost = new SectionBlock {
+                                Text = new Markdown($@"{new Link(recordEmbed?.Record?.Uri, recordEmbed?.Record?.Uri)}")
+                            };
+                            unfurl.Blocks.Add(linkToPost);
+                        }
+                    }
+
+                    // If the sub record has an external link, add it
+                    if (externalRecordView.Embeds.Any(e => e.External != null)) {
+                        var externalEmbed = externalRecordView.Embeds.FirstOrDefault(e => e.External != null);
+                        if (externalEmbed != null) {
+                            var linkToPost = new SectionBlock {
+                                Text = new Markdown(
+                                    $@"{Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)} \ {externalEmbed.External.Description}"),
+                                Accessory = new Image {
+                                    ImageUrl = externalEmbed.External.Thumb,
+                                    AltText = externalEmbed.External.Title
+                                }
+                            };
+                            unfurl.Blocks.Add(linkToPost);
+                        }
+                    }
+
+                    // If the sub record has images, add them
+                    if (externalRecordView.Embeds.Any(e => e.Images != null && e.Images.Any())) {
+                        var imagesEmbed = externalRecordView.Embeds.Where(e => e.Images != null && e.Images.Any())
+                            .ToList();
+                        if (imagesEmbed.Any()) {
+                            foreach (var image in imagesEmbed
+                                         .Where(images => images.Images != null && images.Images.Any())
+                                         .SelectMany(images => images.Images ?? Array.Empty<ImageView>())) {
+                                unfurl.Blocks.Add(new ImageBlock {
+                                    ImageUrl = image.Fullsize,
+                                    AltText = image.Alt
+                                });
                             }
-                        };
-                        unfurl.Blocks.Add(linkToPost);
-                    }
-                }
-
-                // If the sub record has images, add them
-                if (externalRecordView.Embeds.Any(e => e.Images != null && e.Images.Any())) {
-                    var imagesEmbed = externalRecordView.Embeds.Where(e => e.Images != null && e.Images.Any()).ToList();
-                    if (imagesEmbed.Any()) {
-                        foreach (var image in imagesEmbed.Where(images => images.Images != null && images.Images.Any())
-                                     .SelectMany(images => images.Images ?? Array.Empty<ImageView>())) {
-                            unfurl.Blocks.Add(new ImageBlock {
-                                ImageUrl = image.Fullsize,
-                                AltText = image.Alt
-                            });
                         }
                     }
                 }
