@@ -143,11 +143,16 @@ public class SlackService : ISlackService {
 
             this._logger.LogInformation($"Unfurl Result: {JsonConvert.SerializeObject(unfurl)}");
 
-            await this.Client.Chat.Unfurl(
-                linkSharedEvent.Channel,
-                linkSharedEvent.MessageTs,
-                unfurls
-            );
+            try {
+                await this.Client.Chat.Unfurl(
+                    linkSharedEvent.Channel,
+                    linkSharedEvent.MessageTs,
+                    unfurls
+                );
+            }
+            catch (Exception e) {
+                this._logger.LogError(e, "Error sending unfurl to slack");
+            }
         }
     }
 
