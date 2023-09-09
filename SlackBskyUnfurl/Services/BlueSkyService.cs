@@ -10,6 +10,7 @@ using SlackBskyUnfurl.Services.Interfaces;
 namespace SlackBskyUnfurl.Services; 
 
 public class BlueSkyService : IBlueSkyService {
+    private readonly ILogger<BlueSkyService> _logger;
     private const string BaseUri = "https://bsky.social/xrpc/";
     private readonly string _bskyAppPassword;
     private readonly string _bskyUsername;
@@ -17,7 +18,8 @@ public class BlueSkyService : IBlueSkyService {
     private string _refreshToken;
     private readonly HttpClient HttpClient;
 
-    public BlueSkyService(IConfiguration configuration) {
+    public BlueSkyService(IConfiguration configuration, ILogger<BlueSkyService> logger) {
+        this._logger = logger;
         this._bskyUsername = configuration["BlueSkyUserId"];
         this._bskyAppPassword = configuration["BlueSkyAppPassword"];
 
@@ -31,10 +33,19 @@ public class BlueSkyService : IBlueSkyService {
         var sessionRequest = new CreateSessionRequest
             { Identifier = this._bskyUsername, Password = this._bskyAppPassword };
         var result = await this.HttpClient.PostAsJsonAsync("com.atproto.server.createSession", sessionRequest);
+        
+        if (!result.IsSuccessStatusCode) {
+            throw new InvalidOperationException("Failed to authenticate with BlueSky.");
+        }
+        
+        this._logger.LogInformation($"Authentication complete.");
+
         this.SetSessionHeaders(result);
     }
 
     protected async Task Refresh() {
+        this._logger.LogInformation($"Begin authentication refresh");
+
         var refreshHttpClient = new HttpClient();
         refreshHttpClient.BaseAddress = new Uri(BaseUri);
         refreshHttpClient.DefaultRequestHeaders.Authorization =
@@ -43,8 +54,12 @@ public class BlueSkyService : IBlueSkyService {
             var result = await refreshHttpClient.GetAsync("com.atproto.server.refreshSession");
             this.SetSessionHeaders(result);
             refreshHttpClient.Dispose();
+
+            this._logger.LogInformation($"Authentication refresh complete");
         }
         catch {
+            this._logger.LogInformation($"Refresh failed. Begin re-authentication");
+
             await this.Authenticate();
         }
     }
@@ -63,17 +78,22 @@ public class BlueSkyService : IBlueSkyService {
         var postUri = $"at://{did}/app.bsky.feed.post/{postId}";
         var result =
             await this.HttpClient.GetAsync($"app.bsky.feed.getPostThread?uri={Uri.EscapeDataString(postUri)}");
+
         if (result.StatusCode == HttpStatusCode.Unauthorized) {
             await this.Refresh();
             return await this.GetPostThread(did, postId);
+
         }
 
         if (!result.IsSuccessStatusCode) {
             throw new InvalidOperationException("Failed to get post thread");
         }
 
+        var content = await result.Content.ReadAsStringAsync();
+        this._logger.LogInformation($"GetPostThread Content: {content}");
+
         var getPostThreadResponse =
-            JsonConvert.DeserializeObject<GetPostThreadResponse>(await result.Content.ReadAsStringAsync());
+            JsonConvert.DeserializeObject<GetPostThreadResponse>(content);
 
         if (getPostThreadResponse == null) {
             throw new InvalidOperationException("Failed to get post thread");

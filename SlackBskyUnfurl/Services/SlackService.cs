@@ -12,10 +12,12 @@ namespace SlackBskyUnfurl.Services;
 
 public class SlackService : ISlackService {
     private readonly IBlueSkyService _blueSky;
+    private readonly ILogger<SlackService> _logger;
     public ISlackApiClient Client;
 
-    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration) {
+    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration, ILogger<SlackService> logger) {
         this._blueSky = blueSkyService;
+        this._logger = logger;
 
         var clientSecret = configuration["SlackClientSecret"];
         var signingSecret = configuration["SlackSigningSecret"];
@@ -44,6 +46,8 @@ public class SlackService : ISlackService {
         }
 
         foreach (var link in linkSharedEvent.Links) {
+            this._logger.LogInformation($"Unfurling {link.Url} in {linkSharedEvent.Channel} at {linkSharedEvent.MessageTs}");
+
             var unfurlResult = await this._blueSky.HandleGetPostThreadRequest(link.Url);
             if (unfurlResult == null) {
                 throw new InvalidOperationException("No result from post.");
@@ -136,6 +140,8 @@ public class SlackService : ISlackService {
             var unfurls = new Dictionary<string, Attachment> {
                 {link.Url, unfurl}
             };
+
+            this._logger.LogInformation($"Unfurl Result: {JsonConvert.SerializeObject(unfurl)}");
 
             await this.Client.Chat.Unfurl(
                 linkSharedEvent.Channel,

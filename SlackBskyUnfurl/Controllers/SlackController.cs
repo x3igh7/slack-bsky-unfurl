@@ -33,7 +33,7 @@ public class SlackController : Controller {
             return this.Ok(result);
         }
 
-        this._logger.LogDebug(body.ToString());
+        this._logger.LogInformation($"RequestBody: {body.ToString()}");
 
         Task.Run(() => this._slackService.HandleIncomingEvent(body));
 

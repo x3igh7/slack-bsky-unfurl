@@ -10,7 +10,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddLogging();
+builder.Services.AddApplicationInsightsTelemetry();
 
 builder.Services.AddSingleton<ISlackService, SlackService>();
 builder.Services.AddSingleton<IBlueSkyService, BlueSkyService>();
