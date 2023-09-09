@@ -1,4 +1,5 @@
-﻿using SlackNet.Events;
+﻿using Newtonsoft.Json;
+using SlackNet.Events;
 
 namespace SlackBskyUnfurl.Models.Slack
 {
@@ -8,6 +9,7 @@ namespace SlackBskyUnfurl.Models.Slack
 
         public string User { get; set; }
 
+        [JsonProperty("message_ts")]
         public string MessageTs { get; set; }
 
         public string UnfurlId { get; set; }
