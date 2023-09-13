@@ -93,7 +93,7 @@ public class SlackService : ISlackService {
                     // Add block for sub record author
                     var contentBlock = new SectionBlock {
                         Text = new Markdown(
-                            $@"{Link.Url($"https://bsky.app/profile/{externalRecordView.Author.Handle}", externalRecordView.Author.DisplayName)}{"\n"}{externalRecordView.Value.Text}"),
+                            $@">>> {Link.Url($"https://bsky.app/profile/{externalRecordView.Author.Handle}", externalRecordView.Author.DisplayName)}{"\n"}{externalRecordView.Value.Text}"),
                         Accessory = new Image
                         {
                             ImageUrl = externalRecordView.Author.Avatar,
@@ -108,7 +108,7 @@ public class SlackService : ISlackService {
                         var recordEmbed = externalRecordView.Embeds.FirstOrDefault(e => e.Record != null);
                         if (recordEmbed != null) {
                             var linkToPost = new SectionBlock {
-                                Text = new Markdown($@"{new Link(recordEmbed?.Record?.Uri, recordEmbed?.Record?.Uri)}")
+                                Text = new Markdown($@">>> {new Link(recordEmbed?.Record?.Uri, recordEmbed?.Record?.Uri)}")
                             };
                             unfurl.Blocks.Add(linkToPost);
                         }
@@ -120,7 +120,7 @@ public class SlackService : ISlackService {
                         if (externalEmbed != null) {
                             var linkToPost = new SectionBlock {
                                 Text = new Markdown(
-                                    $@"{Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)}{"\n"}{externalEmbed.External.Description}"),
+                                    $@">>> {Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)}{"\n"}{externalEmbed.External.Description}"),
                                 Accessory = new Image
                                 {
                                     ImageUrl = externalEmbed.External.Thumb,
