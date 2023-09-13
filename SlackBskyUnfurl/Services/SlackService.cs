@@ -87,18 +87,12 @@ public class SlackService : ISlackService {
                 }
 
                 if (unfurlResult.Thread.Post.Embed.Record != null) {
-                    unfurl.Blocks.Add(new DividerBlock());
                     var externalRecordView = unfurlResult.Thread.Post.Embed.Record;
 
                     // Add block for sub record author
                     var contentBlock = new SectionBlock {
                         Text = new Markdown(
                             $@">>> {Link.Url($"https://bsky.app/profile/{externalRecordView.Author.Handle}", externalRecordView.Author.DisplayName)}{"\n"}{externalRecordView.Value.Text}"),
-                        Accessory = new Image
-                        {
-                            ImageUrl = externalRecordView.Author.Avatar,
-                            AltText = externalRecordView.Author.DisplayName
-                        }
                     };
 
                     unfurl.Blocks.Add(contentBlock);
@@ -189,11 +183,6 @@ public class SlackService : ISlackService {
         var mainTextBlock = new SectionBlock {
             Text = new Markdown(
                 $@"{Link.Url($"https://bsky.app/profile/{postThread.Thread.Post.Author.Handle}", postThread.Thread.Post.Author.DisplayName)}{"\n"}{postThread.Thread.Post.Record.Text}"),
-            Accessory = new Image
-            {
-                ImageUrl = postThread.Thread.Post.Author.Avatar,
-                AltText = postThread.Thread.Post.Author.DisplayName
-            }
         };
 
         return new List<Block> {
