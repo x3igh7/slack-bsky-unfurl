@@ -101,7 +101,7 @@ public class SlackService : ISlackService {
                     // Add block for sub record author
                     var contentBlock = new SectionBlock {
                         Text = new Markdown(
-                            $@">>> *{Link.Url($"https://bsky.app/profile/{externalRecordView.Author.Handle}", externalRecordView.Author.DisplayName)}* @{externalRecordView.Author.Handle}{"\n"}{externalRecordView.Value.Text}"),
+                            $@">>> {this.GetAuthorLine(externalRecordView.Author)}{"\n"}{externalRecordView.Value.Text}"),
                     };
 
                     unfurl.Blocks.Add(contentBlock);
@@ -222,11 +222,15 @@ public class SlackService : ISlackService {
     protected IEnumerable<Block> CreatePostTextBlocks(GetPostThreadResponse postThread) {
         var mainTextBlock = new SectionBlock {
             Text = new Markdown(
-                $@"*{Link.Url($"https://bsky.app/profile/{postThread.Thread.Post.Author.Handle}", postThread.Thread.Post.Author.DisplayName)}* @{postThread.Thread.Post.Author.Handle}{"\n"}{postThread.Thread.Post.Record.Text}"),
+                $@"{this.GetAuthorLine(postThread.Thread.Post.Author)}{"\n"}{postThread.Thread.Post.Record.Text}"),
         };
 
         return new List<Block> {
             mainTextBlock,
         };
+    }
+
+    protected string GetAuthorLine(Author author) {
+        return $@"*{Link.Url($"https://bsky.app/profile/{author.Handle}", author.DisplayName)}* @{author.Handle}";
     }
 }
