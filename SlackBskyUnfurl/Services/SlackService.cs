@@ -55,7 +55,7 @@ public class SlackService : ISlackService {
         }
 
         foreach (var link in linkSharedEvent.Links) {
-            this._logger.LogInformation($"Unfurling {link.Url} in {linkSharedEvent.Channel} at {linkSharedEvent.MessageTs}");
+            this._logger.LogInformation($"Unfurling link {link.Url} in channel {linkSharedEvent.Channel} at timestamp {linkSharedEvent.MessageTs}");
 
             var unfurlResult = await this._blueSky.HandleGetPostThreadRequest(link.Url);
             if (unfurlResult == null) {
@@ -80,7 +80,7 @@ public class SlackService : ISlackService {
                     {
                         unfurl.Blocks.Add(new ImageBlock
                         {
-                            ImageUrl = image.Fullsize,
+                            ImageUrl = image.Thumb,
                             AltText = image.Alt
                         });
                     }
@@ -144,7 +144,7 @@ public class SlackService : ISlackService {
                             {
                                 unfurl.Blocks.Add(new ImageBlock
                                 {
-                                    ImageUrl = image.Fullsize,
+                                    ImageUrl = image.Thumb,
                                     AltText = image.Alt
                                 });
                             }

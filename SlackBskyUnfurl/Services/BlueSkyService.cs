@@ -30,12 +30,14 @@ public class BlueSkyService : IBlueSkyService {
     }
 
     protected async Task Authenticate() {
+        this._logger.LogInformation($"Begin authentication");
+
         var sessionRequest = new CreateSessionRequest
             { Identifier = this._bskyUsername, Password = this._bskyAppPassword };
         var result = await this.HttpClient.PostAsJsonAsync("com.atproto.server.createSession", sessionRequest);
         
         if (!result.IsSuccessStatusCode) {
-            throw new InvalidOperationException("Failed to authenticate with BlueSky.");
+            throw new InvalidOperationException($"Failed to authenticate with BlueSky: {await result.Content.ReadAsStringAsync()}");
         }
         
         this._logger.LogInformation($"Authentication complete.");
@@ -75,6 +77,8 @@ public class BlueSkyService : IBlueSkyService {
     }
 
     public async Task<GetPostThreadResponse> GetPostThread(string did, string postId) {
+        this._logger.LogInformation($"GetPostThread Did: {did} PostId: {postId}");
+
         var postUri = $"at://{did}/app.bsky.feed.post/{postId}";
         var result =
             await this.HttpClient.GetAsync($"app.bsky.feed.getPostThread?uri={Uri.EscapeDataString(postUri)}");
@@ -103,6 +107,8 @@ public class BlueSkyService : IBlueSkyService {
     }
 
     public async Task<ResolveHandleResponse> ResolveHandle(string username) {
+        this._logger.LogInformation($"ResolveHandle Username: {username}");
+
         var result =
             await this.HttpClient.GetAsync(
                 $"com.atproto.identity.resolveHandle?handle={Uri.EscapeDataString(username)}");
@@ -111,8 +117,10 @@ public class BlueSkyService : IBlueSkyService {
             return await this.ResolveHandle(username);
         }
 
+        var content = await result.Content.ReadAsStringAsync();
+        this._logger.LogInformation($"ResolveHandle Result: {content}");
         var resolveHandleResponse =
-            JsonConvert.DeserializeObject<ResolveHandleResponse>(await result.Content.ReadAsStringAsync());
+            JsonConvert.DeserializeObject<ResolveHandleResponse>(content);
         if (resolveHandleResponse == null) {
             throw new InvalidOperationException("Failed to resolve handle");
         }
