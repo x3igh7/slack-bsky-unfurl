@@ -86,7 +86,7 @@ public class BlueSkyService : IBlueSkyService {
         var content = await result.Content.ReadAsStringAsync();
         this._logger.LogInformation($"GetPostThread StatusCode: {result.StatusCode} Result: {content}");
 
-        if (result.StatusCode == HttpStatusCode.Unauthorized) {
+        if (result.StatusCode == HttpStatusCode.Unauthorized || (result.StatusCode == HttpStatusCode.BadRequest && content.Contains("ExpiredToken"))) {
             await this.Refresh();
             return await this.GetPostThread(did, postId);
         }
