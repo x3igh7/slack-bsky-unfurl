@@ -54,15 +54,25 @@ public class BlueSkyService : IBlueSkyService {
             new AuthenticationHeaderValue("Bearer", this._refreshToken);
         try {
             var result = await refreshHttpClient.GetAsync("com.atproto.server.refreshSession");
+
+            if (!result.IsSuccessStatusCode) {
+                this._logger.LogInformation($"Refresh failed. Status: {result.StatusCode} Content: {await result.Content.ReadAsStringAsync()}. Begin re-authentication");
+
+                await this.Authenticate();
+                refreshHttpClient.Dispose();
+                return;
+            }
+
             this.SetSessionHeaders(result);
             refreshHttpClient.Dispose();
 
             this._logger.LogInformation($"Authentication refresh complete");
         }
         catch {
-            this._logger.LogInformation($"Refresh failed. Begin re-authentication");
+            this._logger.LogInformation($"Refresh erred. Begin re-authentication");
 
             await this.Authenticate();
+            refreshHttpClient.Dispose();
         }
     }
 
