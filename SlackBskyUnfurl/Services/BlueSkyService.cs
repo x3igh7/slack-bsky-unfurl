@@ -83,18 +83,17 @@ public class BlueSkyService : IBlueSkyService {
         var result =
             await this.HttpClient.GetAsync($"app.bsky.feed.getPostThread?uri={Uri.EscapeDataString(postUri)}");
 
+        var content = await result.Content.ReadAsStringAsync();
+        this._logger.LogInformation($"GetPostThread StatusCode: {result.StatusCode} Result: {content}");
+
         if (result.StatusCode == HttpStatusCode.Unauthorized) {
             await this.Refresh();
             return await this.GetPostThread(did, postId);
-
         }
 
         if (!result.IsSuccessStatusCode) {
             throw new InvalidOperationException("Failed to get post thread");
         }
-
-        var content = await result.Content.ReadAsStringAsync();
-        this._logger.LogInformation($"GetPostThread Content: {content}");
 
         var getPostThreadResponse =
             JsonConvert.DeserializeObject<GetPostThreadResponse>(content);
