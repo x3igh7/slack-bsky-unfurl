@@ -14,13 +14,11 @@ namespace SlackBskyUnfurl.Services;
 
 public class SlackService : ISlackService {
     private readonly IBlueSkyService _blueSky;
-    private readonly IWebHostEnvironment _env;
     private readonly ILogger<SlackService> _logger;
     public ISlackApiClient Client;
 
-    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration, IWebHostEnvironment env, ILogger<SlackService> logger) {
+    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration, ILogger<SlackService> logger) {
         this._blueSky = blueSkyService;
-        this._env = env;
         this._logger = logger;
 
         var apiToken = configuration["SlackApiToken"];
@@ -194,7 +192,6 @@ public class SlackService : ISlackService {
             Elements = new List<IContextElement>
             {  
                 new ContextImageBlock {
-                    //ImageUrl = $"{this._env.WebRootPath}/images/logo.jpg", 
                     ImageUrl = "https://slack-bluesky-unfurl.azurewebsites.net/images/logo.png",
                     AltText = "Bluesky Social Logo"
                 }, 
