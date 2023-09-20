@@ -97,11 +97,11 @@ public class SlackService : ISlackService {
 
                 if (unfurlResult.Thread.Post.Embed.Record != null) {
                     var externalRecordView = unfurlResult.Thread.Post.Embed.Record;
-
+                    var text = this.GetPostTest(externalRecordView.Value);
                     // Add block for sub record author
                     var contentBlock = new SectionBlock {
                         Text = new Markdown(
-                            $@">>> {this.GetAuthorLine(externalRecordView.Author)}{"\n"}{externalRecordView.Value.Text}"),
+                            $@">>> {this.GetAuthorLine(externalRecordView.Author)}{"\n"}{text}"),
                     };
 
                     unfurl.Blocks.Add(contentBlock);
@@ -180,7 +180,7 @@ public class SlackService : ISlackService {
 
     protected ContextBlock CreateLinkContext(string uri, bool isNested = false) {
         var url = new Uri(uri);
-        var text = isNested ? $@">>> {url.Host}" : $@"{url.Host}";
+        var text = $@"{url.Host}";
         var context = new ContextBlock {
             Elements = new List<IContextElement>
                 { new ContextTextBlock { Type = "plain_text", Text = $@"{text}" } }
@@ -220,14 +220,35 @@ public class SlackService : ISlackService {
     }
 
     protected IEnumerable<Block> CreatePostTextBlocks(GetPostThreadResponse postThread) {
+        var text = this.GetPostTest(postThread.Thread.Post.Record);
+
         var mainTextBlock = new SectionBlock {
             Text = new Markdown(
-                $@"{this.GetAuthorLine(postThread.Thread.Post.Author)}{"\n"}{postThread.Thread.Post.Record.Text}"),
+                $@"({this.GetAuthorLine(postThread.Thread.Post.Author)}){"\n"}{text}"),
         };
 
         return new List<Block> {
             mainTextBlock,
         };
+    }
+
+    protected string GetPostTest(Post post) {
+        var text = post.Text;
+        var facets = post.Facets;
+
+        if (facets == null || !facets.Any()) {
+            return text;
+        }
+
+        var linkFacets = facets.Where(f => f.Features.Any(ff => ff.Type.Contains("link"))).ToList();
+        linkFacets.ForEach(lf => {
+            var substring = text.Substring(lf.Index.ByteStart, lf.Index.ByteEnd - lf.Index.ByteStart);
+            var link = lf.Features.First(f => !string.IsNullOrEmpty(f.Uri)).Uri;
+            text.Remove(lf.Index.ByteStart, lf.Index.ByteEnd = lf.Index.ByteStart);
+            text.Insert(lf.Index.ByteStart, Link.Url(link, substring).ToString());
+        });
+
+        return text;
     }
 
     protected string GetAuthorLine(Author author) {
