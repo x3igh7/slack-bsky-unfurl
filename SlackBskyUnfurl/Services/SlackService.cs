@@ -221,7 +221,7 @@ public class SlackService : ISlackService {
 
         var mainTextBlock = new SectionBlock {
             Text = new Markdown(
-                $@"({this.GetAuthorLine(postThread.Thread.Post.Author)}){"\n"}{text}"),
+                $@"{this.GetAuthorLine(postThread.Thread.Post.Author)}{"\n"}{text}"),
         };
 
         return new List<Block> {
@@ -241,14 +241,14 @@ public class SlackService : ISlackService {
         linkFacets.ForEach(lf => {
             var substring = text.Substring(lf.Index.ByteStart, lf.Index.ByteEnd - lf.Index.ByteStart);
             var link = lf.Features.First(f => !string.IsNullOrEmpty(f.Uri)).Uri;
-            text.Remove(lf.Index.ByteStart, lf.Index.ByteEnd = lf.Index.ByteStart);
-            text.Insert(lf.Index.ByteStart, Link.Url(link, substring).ToString());
+            text = text.Remove(lf.Index.ByteStart, lf.Index.ByteEnd - lf.Index.ByteStart);
+            text = text.Insert(lf.Index.ByteStart, Link.Url(link, substring).ToString());
         });
 
         return text;
     }
 
     protected string GetAuthorLine(Author author) {
-        return $@"*{Link.Url($"https://bsky.app/profile/{author.Handle}", author.DisplayName)}* @{author.Handle}";
+        return $@"*{Link.Url($"https://bsky.app/profile/{author.Handle}", author.DisplayName)}* (@{author.Handle})";
     }
 }
