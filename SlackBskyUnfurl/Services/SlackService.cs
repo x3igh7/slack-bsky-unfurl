@@ -81,6 +81,7 @@ public class SlackService : ISlackService {
                     unfurl.Blocks.Add(externalBlock);
                 }
 
+                // If the post has images, add them.
                 if (unfurlResult.Thread.Post.Embed.Images != null && unfurlResult.Thread.Post.Embed.Images.Any())
                 {
                     foreach (var image in unfurlResult.Thread.Post.Embed.Images)
@@ -89,6 +90,19 @@ public class SlackService : ISlackService {
                         {
                             ImageUrl = image.Thumb,
                             AltText = image.Alt
+                        });
+                    }
+                }
+
+                // If the post has media, add it.
+                // This happens when a post with an image is a repost of another post
+                if (unfurlResult.Thread.Post.Embed.Media.Images != null && unfurlResult.Thread.Post.Embed.Media.Images.Any()) {
+                    var mediaImages = unfurlResult.Thread.Post.Embed.Media.Images;
+                    foreach (var mediaImage in mediaImages) {
+                        unfurl.Blocks.Add(new ImageBlock
+                        {
+                            ImageUrl = mediaImage.Thumb,
+                            AltText = mediaImage.Alt
                         });
                     }
                 }
