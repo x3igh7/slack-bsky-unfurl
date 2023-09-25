@@ -14,6 +14,7 @@ public class BlueSkyService : IBlueSkyService {
     private const string BaseUri = "https://bsky.social/xrpc/";
     private readonly string _bskyAppPassword;
     private readonly string _bskyUsername;
+    private string _bskyHandle;
     private string _accessToken;
     private string _refreshToken;
     private readonly HttpClient HttpClient;
@@ -52,8 +53,15 @@ public class BlueSkyService : IBlueSkyService {
         refreshHttpClient.BaseAddress = new Uri(BaseUri);
         refreshHttpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", this._refreshToken);
+
+        var refreshRequest = new RefreshSessionRequest {
+            AccessJwt = this._accessToken,
+            RefreshJwt = this._refreshToken,
+            Handle = this._bskyHandle,
+            Did = this._bskyUsername
+        };
         try {
-            var result = await refreshHttpClient.GetAsync("com.atproto.server.refreshSession");
+            var result = await refreshHttpClient.PostAsJsonAsync("com.atproto.server.refreshSession", refreshRequest);
 
             if (!result.IsSuccessStatusCode) {
                 this._logger.LogInformation($"Refresh failed. Status: {result.StatusCode} Content: {await result.Content.ReadAsStringAsync()}. Begin re-authentication");
@@ -145,6 +153,7 @@ public class BlueSkyService : IBlueSkyService {
 
         this._accessToken = response.AccessJwt;
         this._refreshToken = response.RefreshJwt;
+        this._bskyHandle = response.Handle;
 
         this.HttpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", this._accessToken);
