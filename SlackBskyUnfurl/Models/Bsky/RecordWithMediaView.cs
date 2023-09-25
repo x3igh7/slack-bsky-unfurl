@@ -2,7 +2,7 @@
 {
     public class RecordWithMediaView
     {
-        public RecordView Record { get; set; }
+        public EmbedRecord Record { get; set; }
         public MediaView Media { get; set; }
     }
 }

@@ -95,29 +95,29 @@ public class SlackService : ISlackService {
 
                 if (unfurlResult.Thread.Post.Embed.Record != null) {
                     var externalRecordView = unfurlResult.Thread.Post.Embed.Record;
-                    var text = this.GetPostTest(externalRecordView.Value);
+                    var text = this.GetPostTest(externalRecordView.Record.Value);
                     // Add block for sub record author
                     var contentBlock = new SectionBlock {
                         Text = new Markdown(
-                            $@">>> {this.GetAuthorLine(externalRecordView.Author)}{"\n"}{text}"),
+                            $@">>> {this.GetAuthorLine(externalRecordView.Record.Author)}{"\n"}{text}"),
                     };
 
                     unfurl.Blocks.Add(contentBlock);
 
                     // Add link if the sub record references yet another record
-                    if (externalRecordView.Embeds.Any(e => e.Record != null)) {
-                        var recordEmbed = externalRecordView.Embeds.FirstOrDefault(e => e.Record != null);
+                    if (externalRecordView.Record.Embeds.Any(e => e.Record != null)) {
+                        var recordEmbed = externalRecordView.Record.Embeds.FirstOrDefault(e => e.Record != null);
                         if (recordEmbed != null) {
                             var linkToPost = new SectionBlock {
-                                Text = new Markdown($@">>> {new Link(recordEmbed?.Record?.Uri, recordEmbed?.Record?.Uri)}")
+                                Text = new Markdown($@">>> {new Link(recordEmbed?.External.Uri, recordEmbed?.External?.Uri)}")
                             };
                             unfurl.Blocks.Add(linkToPost);
                         }
                     }
 
                     // If the sub record has an external link, add it
-                    if (externalRecordView.Embeds.Any(e => e.External != null)) {
-                        var externalEmbed = externalRecordView.Embeds.FirstOrDefault(e => e.External != null);
+                    if (externalRecordView.Record.Embeds.Any(e => e.External != null)) {
+                        var externalEmbed = externalRecordView.Record.Embeds.FirstOrDefault(e => e.External != null);
                         if (externalEmbed != null) {
                             var contextBlock = this.CreateLinkContext(externalEmbed.External.Uri, true);
                             unfurl.Blocks.Add(contextBlock);
@@ -136,9 +136,9 @@ public class SlackService : ISlackService {
                     }
 
                     //If the sub record has images, add them
-                    if (externalRecordView.Embeds.Any(e => e.Images != null && e.Images.Any()))
+                    if (externalRecordView.Record.Embeds.Any(e => e.Images != null && e.Images.Any()))
                     {
-                        var imagesEmbed = externalRecordView.Embeds.Where(e => e.Images != null && e.Images.Any())
+                        var imagesEmbed = externalRecordView.Record.Embeds.Where(e => e.Images != null && e.Images.Any())
                             .ToList();
                         if (imagesEmbed.Any())
                         {
