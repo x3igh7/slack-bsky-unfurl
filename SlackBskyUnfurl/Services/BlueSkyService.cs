@@ -2,22 +2,21 @@
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
-using SlackBskyUnfurl.Models.Bsky;
 using SlackBskyUnfurl.Models.Bsky.Requests;
 using SlackBskyUnfurl.Models.Bsky.Responses;
 using SlackBskyUnfurl.Services.Interfaces;
 
-namespace SlackBskyUnfurl.Services; 
+namespace SlackBskyUnfurl.Services;
 
 public class BlueSkyService : IBlueSkyService {
-    private readonly ILogger<BlueSkyService> _logger;
     private const string BaseUri = "https://bsky.social/xrpc/";
     private readonly string _bskyAppPassword;
     private readonly string _bskyUsername;
-    private string _bskyHandle;
-    private string _accessToken;
-    private string _refreshToken;
+    private readonly ILogger<BlueSkyService> _logger;
     private readonly HttpClient HttpClient;
+    private string _accessToken;
+    private string _bskyHandle;
+    private string _refreshToken;
 
     public BlueSkyService(IConfiguration configuration, ILogger<BlueSkyService> logger) {
         this._logger = logger;
@@ -30,24 +29,35 @@ public class BlueSkyService : IBlueSkyService {
         this.Authenticate().Wait();
     }
 
+    public async Task<GetPostThreadResponse> HandleGetPostThreadRequest(string url) {
+        var username = Regex.Match(url, @"(?<=profile/).*?(?=/post)").Value;
+        var resolvedHandle = await this.ResolveHandle(username);
+
+        var postId = Regex.Match(url, @"(?<=post/).*").Value;
+        var threadPost = await this.GetPostThread(resolvedHandle.Did, postId);
+
+        return threadPost;
+    }
+
     protected async Task Authenticate() {
-        this._logger.LogInformation($"Begin authentication");
+        this._logger.LogInformation("Begin authentication");
 
         var sessionRequest = new CreateSessionRequest
             { Identifier = this._bskyUsername, Password = this._bskyAppPassword };
         var result = await this.HttpClient.PostAsJsonAsync("com.atproto.server.createSession", sessionRequest);
-        
+
         if (!result.IsSuccessStatusCode) {
-            throw new InvalidOperationException($"Failed to authenticate with BlueSky: {await result.Content.ReadAsStringAsync()}");
+            throw new InvalidOperationException(
+                $"Failed to authenticate with BlueSky: {await result.Content.ReadAsStringAsync()}");
         }
-        
-        this._logger.LogInformation($"Authentication complete.");
+
+        this._logger.LogInformation("Authentication complete.");
 
         this.SetSessionHeaders(result);
     }
 
     protected async Task Refresh() {
-        this._logger.LogInformation($"Begin authentication refresh");
+        this._logger.LogInformation("Begin authentication refresh");
 
         var refreshHttpClient = new HttpClient();
         refreshHttpClient.BaseAddress = new Uri(BaseUri);
@@ -64,7 +74,8 @@ public class BlueSkyService : IBlueSkyService {
             var result = await refreshHttpClient.PostAsJsonAsync("com.atproto.server.refreshSession", refreshRequest);
 
             if (!result.IsSuccessStatusCode) {
-                this._logger.LogInformation($"Refresh failed. Status: {result.StatusCode} Content: {await result.Content.ReadAsStringAsync()}. Begin re-authentication");
+                this._logger.LogInformation(
+                    $"Refresh failed. Status: {result.StatusCode} Content: {await result.Content.ReadAsStringAsync()}. Begin re-authentication");
 
                 await this.Authenticate();
                 refreshHttpClient.Dispose();
@@ -74,24 +85,14 @@ public class BlueSkyService : IBlueSkyService {
             this.SetSessionHeaders(result);
             refreshHttpClient.Dispose();
 
-            this._logger.LogInformation($"Authentication refresh complete");
+            this._logger.LogInformation("Authentication refresh complete");
         }
         catch {
-            this._logger.LogInformation($"Refresh erred. Begin re-authentication");
+            this._logger.LogInformation("Refresh erred. Begin re-authentication");
 
             await this.Authenticate();
             refreshHttpClient.Dispose();
         }
-    }
-
-    public async Task<GetPostThreadResponse> HandleGetPostThreadRequest(string url) {
-        var username = Regex.Match(url, @"(?<=profile/).*?(?=/post)").Value;
-        var resolvedHandle = await this.ResolveHandle(username);
-
-        var postId = Regex.Match(url, @"(?<=post/).*").Value;
-        var threadPost = await this.GetPostThread(resolvedHandle.Did, postId);
-
-        return threadPost;
     }
 
     public async Task<GetPostThreadResponse> GetPostThread(string did, string postId) {
@@ -104,7 +105,8 @@ public class BlueSkyService : IBlueSkyService {
         var content = await result.Content.ReadAsStringAsync();
         this._logger.LogInformation($"GetPostThread StatusCode: {result.StatusCode} Result: {content}");
 
-        if (result.StatusCode == HttpStatusCode.Unauthorized || (result.StatusCode == HttpStatusCode.BadRequest && content.Contains("ExpiredToken"))) {
+        if (result.StatusCode == HttpStatusCode.Unauthorized ||
+            (result.StatusCode == HttpStatusCode.BadRequest && content.Contains("ExpiredToken"))) {
             await this.Refresh();
             return await this.GetPostThread(did, postId);
         }
@@ -136,6 +138,7 @@ public class BlueSkyService : IBlueSkyService {
 
         var content = await result.Content.ReadAsStringAsync();
         this._logger.LogInformation($"ResolveHandle Result: {content}");
+
         var resolveHandleResponse =
             JsonConvert.DeserializeObject<ResolveHandleResponse>(content);
         if (resolveHandleResponse == null) {
