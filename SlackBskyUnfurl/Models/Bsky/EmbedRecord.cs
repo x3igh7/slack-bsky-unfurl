@@ -2,6 +2,6 @@
 {
     public class EmbedRecord
     {
-        public RecordView Record { get; set; }
+        public RecordView? Record { get; set; }
     }
 }

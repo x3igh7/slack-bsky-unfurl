@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Text;
+using System.Text.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SlackBskyUnfurl.Models;
@@ -107,20 +108,21 @@ public class SlackService : ISlackService {
                     }
                 }
 
-                if (unfurlResult.Thread.Post.Embed.Record != null) {
-                    var externalRecordView = unfurlResult.Thread.Post.Embed.Record;
-                    var text = this.GetPostTest(externalRecordView.Record.Value);
+                // I honestly have no idea why there are different types of embeds here, bluesky seems very inconsistent for some reason
+                var embedRecord = unfurlResult.Thread.Post.Embed.Record.Record ?? unfurlResult.Thread.Post.Embed.Record;
+                if (embedRecord != null) {
+                    var text = this.GetPostTest(embedRecord.Value);
                     // Add block for sub record author
                     var contentBlock = new SectionBlock {
                         Text = new Markdown(
-                            $@">>> {this.GetAuthorLine(externalRecordView.Record.Author)}{"\n"}{text}"),
+                            $@">>> {this.GetAuthorLine(embedRecord.Author)}{"\n"}{text}"),
                     };
 
                     unfurl.Blocks.Add(contentBlock);
 
                     // Add link if the sub record references yet another record
-                    if (externalRecordView.Record.Embeds.Any(e => e.Record != null)) {
-                        var recordEmbed = externalRecordView.Record.Embeds.FirstOrDefault(e => e.Record != null);
+                    if (embedRecord.Embeds.Any(e => e.Record != null)) {
+                        var recordEmbed = embedRecord.Embeds.FirstOrDefault(e => e.Record != null);
                         if (recordEmbed != null) {
                             var linkToPost = new SectionBlock {
                                 Text = new Markdown($@">>> {new Link(recordEmbed?.External.Uri, recordEmbed?.External?.Uri)}")
@@ -130,8 +132,8 @@ public class SlackService : ISlackService {
                     }
 
                     // If the sub record has an external link, add it
-                    if (externalRecordView.Record.Embeds.Any(e => e.External != null)) {
-                        var externalEmbed = externalRecordView.Record.Embeds.FirstOrDefault(e => e.External != null);
+                    if (embedRecord.Embeds.Any(e => e.External != null)) {
+                        var externalEmbed = embedRecord.Embeds.FirstOrDefault(e => e.External != null);
                         if (externalEmbed != null) {
                             var contextBlock = this.CreateLinkContext(externalEmbed.External.Uri, true);
                             unfurl.Blocks.Add(contextBlock);
@@ -150,9 +152,9 @@ public class SlackService : ISlackService {
                     }
 
                     //If the sub record has images, add them
-                    if (externalRecordView.Record.Embeds.Any(e => e.Images != null && e.Images.Any()))
+                    if (embedRecord.Embeds.Any(e => e.Images != null && e.Images.Any()))
                     {
-                        var imagesEmbed = externalRecordView.Record.Embeds.Where(e => e.Images != null && e.Images.Any())
+                        var imagesEmbed = embedRecord.Embeds.Where(e => e.Images != null && e.Images.Any())
                             .ToList();
                         if (imagesEmbed.Any())
                         {
@@ -253,10 +255,10 @@ public class SlackService : ISlackService {
 
         var linkFacets = facets.Where(f => f.Features.Any(ff => ff.Type.Contains("link"))).ToList();
         linkFacets.ForEach(lf => {
-            var substring = text.Substring(lf.Index.ByteStart, lf.Index.ByteEnd - lf.Index.ByteStart);
+            var substringBytes = Encoding.UTF8.GetBytes(text).Take(new Range(lf.Index.ByteStart, lf.Index.ByteEnd));
             var link = lf.Features.First(f => !string.IsNullOrEmpty(f.Uri)).Uri;
-            text = text.Remove(lf.Index.ByteStart, lf.Index.ByteEnd - lf.Index.ByteStart);
-            text = text.Insert(lf.Index.ByteStart, Link.Url(link, substring).ToString());
+            var substring = Encoding.UTF8.GetString(substringBytes.ToArray(), 0, substringBytes.Count());
+            text = text.Replace(substring, Link.Url(link, substring).ToString());
         });
 
         return text;
