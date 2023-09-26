@@ -96,7 +96,7 @@ public class SlackService : ISlackService {
 
                 // If the post has media, add it.
                 // This happens when a post with an image is a repost of another post
-                if (unfurlResult.Thread.Post.Embed.Media.Images != null && unfurlResult.Thread.Post.Embed.Media.Images.Any()) {
+                if (unfurlResult.Thread.Post.Embed.Media?.Images != null && unfurlResult.Thread.Post.Embed.Media.Images.Any()) {
                     var mediaImages = unfurlResult.Thread.Post.Embed.Media.Images;
                     foreach (var mediaImage in mediaImages) {
                         unfurl.Blocks.Add(new ImageBlock
