@@ -109,7 +109,7 @@ public class SlackService : ISlackService {
                 }
 
                 // I honestly have no idea why there are different types of embeds here, bluesky seems very inconsistent for some reason
-                var embedRecord = unfurlResult.Thread.Post.Embed.Record.Record ?? unfurlResult.Thread.Post.Embed.Record;
+                var embedRecord = unfurlResult.Thread.Post.Embed.Record?.Record ?? unfurlResult.Thread.Post.Embed.Record;
                 if (embedRecord != null) {
                     var text = this.GetPostTest(embedRecord.Value);
                     // Add block for sub record author
