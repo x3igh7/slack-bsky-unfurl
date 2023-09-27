@@ -101,7 +101,7 @@ public class SlackService : ISlackService {
                 var embedRecord = unfurlResult.Thread.Post.Embed.Record?.Record ??
                                   unfurlResult.Thread.Post.Embed.Record;
                 if (embedRecord != null) {
-                    var embedTextBlock = SlackBlockCreator.CreateRecordViewTextBlock(embedRecord);
+                    var embedTextBlock = SlackBlockCreator.CreateRecordViewTextBlock(embedRecord, true);
                     unfurl.Blocks.Add(embedTextBlock);
 
                     // Add link if the sub record references yet another record
