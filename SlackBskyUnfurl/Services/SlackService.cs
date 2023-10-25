@@ -145,7 +145,7 @@ public class SlackService : ISlackService {
                 { link.Url, unfurl }
             };
 
-            this._logger.LogInformation($"Unfurl Result: {JsonConvert.SerializeObject(unfurl)}");
+            this._logger.LogDebug($"Unfurl Result: {JsonConvert.SerializeObject(unfurl)}");
 
             try {
                 await this.Client.Chat.Unfurl(
