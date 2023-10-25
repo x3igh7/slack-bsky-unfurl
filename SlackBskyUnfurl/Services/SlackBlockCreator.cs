@@ -25,11 +25,12 @@ namespace SlackBskyUnfurl.Services
             return linkToPost;
         }
 
-        public static SectionBlock CreateEmbedViewRecordLinkBlock(EmbedView embedRecord)
-        {
+        public static SectionBlock CreateEmbedViewRecordLinkBlock(EmbedView embedRecord) {
+            var postId = embedRecord.Record.Uri.Split("/").Last();
+            var url = $"https://bsky.app/profile/{embedRecord.Record.Author.Handle}/post/{postId}";
             var linkToPost = new SectionBlock
             {
-                Text = new Markdown($@">>> {new Link(embedRecord?.External.Uri, embedRecord?.External?.Uri)}")
+                Text = new Markdown($@">>>{new Link(url, url)}")
             };
 
             return linkToPost;
