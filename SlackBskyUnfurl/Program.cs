@@ -17,7 +17,7 @@ builder.Services.AddSnapshotCollector();
 
 builder.Services.AddDbContext<SlackBskyContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Sql")));
 
-builder.Services.AddSingleton<ISlackService, SlackService>();
+builder.Services.AddScoped<ISlackService, SlackService>();
 builder.Services.AddSingleton<IBlueSkyService, BlueSkyService>();
 
 builder.Services.AddCors(options => options.AddDefaultPolicy(policyBuilder =>

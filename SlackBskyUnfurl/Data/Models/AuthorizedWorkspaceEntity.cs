@@ -6,7 +6,7 @@ namespace SlackBskyUnfurl.Data.Models
     public class AuthorizedWorkspaceEntity
     {
         public Guid Id { get; set; }
-        public string WorkspaceId { get; set; }
+        public string TeamId { get; set; }
         public string AccessToken { get; set; }
     }
 }
