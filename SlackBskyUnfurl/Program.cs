@@ -1,3 +1,5 @@
+using SlackBskyUnfurl.Data;
+using Microsoft.EntityFrameworkCore;
 using SlackBskyUnfurl.Services;
 using SlackBskyUnfurl.Services.Interfaces;
 
@@ -12,6 +14,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddSnapshotCollector();
+
+builder.Services.AddDbContext<SlackBskyUnfurlContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Sql")));
 
 builder.Services.AddSingleton<ISlackService, SlackService>();
 builder.Services.AddSingleton<IBlueSkyService, BlueSkyService>();
