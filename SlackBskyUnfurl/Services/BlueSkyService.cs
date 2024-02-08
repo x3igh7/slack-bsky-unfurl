@@ -164,8 +164,7 @@ public class BlueSkyService : IBlueSkyService {
             new AuthenticationHeaderValue("Bearer", this._accessToken);
     }
 
-    private string ReplacePropertyNames(string content)
-    {
+    private string ReplacePropertyNames(string content) {
         content = content.Replace("$type", "type").Replace("$link", "link");
         return content;
     }

@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-
-namespace SlackBskyUnfurl.Models.Bsky; 
+﻿namespace SlackBskyUnfurl.Models.Bsky; 
 
 public class Post {
     public string Type { get; set; }
