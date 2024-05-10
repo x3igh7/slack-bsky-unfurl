@@ -22,9 +22,18 @@ jobs:
           dotnet-version: '6.0.x'
           include-prerelease: true
 
+      - name: Install EF Tool
+        run: |
+          dotnet new tool-manifest
+          dotnet tool install dotnet-ef
+
       - name: Build with dotnet
         working-directory: ./SlackBskyUnfurl
         run: dotnet build --configuration Release
+
+      - name: update database
+        working-directory: ./SlackBskyUnfurl
+        run: dotnet ef database update --project SlackBskyUnfurl --startup-project SlackBskyUnfurl
 
       - name: dotnet publish
         working-directory: ./SlackBskyUnfurl

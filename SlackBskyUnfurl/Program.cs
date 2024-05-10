@@ -15,7 +15,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddSnapshotCollector();
 
-builder.Services.AddDbContext<SlackBskyContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Sql")));
+builder.Services.AddDbContext<SlackBskyContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Remote")));
 
 builder.Services.AddScoped<ISlackService, SlackService>();
 builder.Services.AddSingleton<IBlueSkyService, BlueSkyService>();
