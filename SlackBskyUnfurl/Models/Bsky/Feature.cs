@@ -6,7 +6,6 @@ public class Feature {
     /// <summary>
     ///     The type of feature
     /// </summary>
-    [JsonProperty("$type")]
     public string Type { get; set; }
 
     /// <summary>

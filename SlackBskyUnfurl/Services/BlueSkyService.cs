@@ -115,6 +115,8 @@ public class BlueSkyService : IBlueSkyService {
             throw new InvalidOperationException("Failed to get post thread");
         }
 
+        // newtonsoft json deserializer doesn't like the $type, $link properties so we'll replace them first
+        content = this.ReplacePropertyNames(content);
         var getPostThreadResponse =
             JsonConvert.DeserializeObject<GetPostThreadResponse>(content);
 
@@ -160,5 +162,10 @@ public class BlueSkyService : IBlueSkyService {
 
         this.HttpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", this._accessToken);
+    }
+
+    private string ReplacePropertyNames(string content) {
+        content = content.Replace("$type", "type").Replace("$link", "link");
+        return content;
     }
 }
