@@ -56,7 +56,10 @@ public class SlackService : ISlackService {
     }
 
     public async Task HandleIncomingEvent(JsonElement dynamicSlackEvent) {
-        var slackEvent = JsonConvert.DeserializeObject<EventCallback>(dynamicSlackEvent.ToString());
+        var slackEvent = JsonConvert.DeserializeObject<EventCallback>(dynamicSlackEvent.ToString(), new JsonSerializerSettings
+        {
+            MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+        });
         if (slackEvent.Event.Type == "link_shared") {
             var json = dynamicSlackEvent.GetProperty("event").ToString();
             LinkShared linkSharedEvent = null;
@@ -182,7 +185,10 @@ public class SlackService : ISlackService {
                 { link.Url, unfurl }
             };
 
-            this._logger.LogDebug($"Unfurl Result: {JsonConvert.SerializeObject(unfurl)}");
+            this._logger.LogDebug($"Unfurl Result: {JsonConvert.SerializeObject(unfurl, new JsonSerializerSettings
+            {
+                MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+            })}");
 
             try {
                 await this.Client.Chat.Unfurl(

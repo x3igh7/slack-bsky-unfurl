@@ -39,7 +39,10 @@ public class SlackController : Controller {
     }
 
     public async Task<IActionResult> Access([FromBody] JsonElement body) {
-        var response = JsonConvert.DeserializeObject<ScopeResponse>(body.ToString());
+        var response = JsonConvert.DeserializeObject<ScopeResponse>(body.ToString(), new JsonSerializerSettings
+        {
+            MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+        });
         if (response == null || !response.Ok) {
             return this.BadRequest("Error authorizing");
         }
@@ -51,7 +54,10 @@ public class SlackController : Controller {
 
     [HttpPost("events/handle")]
     public async Task<IActionResult> Event([FromBody] JsonElement body) {
-        var request = JsonConvert.DeserializeObject<EventRequest>(body.ToString()); 
+        var request = JsonConvert.DeserializeObject<EventRequest>(body.ToString(), new JsonSerializerSettings
+        {
+            MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+        }); 
         if (request.Type == "url_verification") {
             var urlVerificationEvent = JsonConvert.DeserializeObject<UrlVerification>(body.ToString());
             var result = await this._slackService.HandleVerification(urlVerificationEvent);
