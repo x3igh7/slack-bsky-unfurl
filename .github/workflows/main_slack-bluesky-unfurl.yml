@@ -22,14 +22,18 @@ jobs:
           dotnet-version: '8.0.x'
           include-prerelease: true
 
-      - name: Install EF Tool
-        run: |
-          dotnet new tool-manifest
-          dotnet tool install dotnet-ef
-
       - name: Build with dotnet
         working-directory: ./SlackBskyUnfurl
         run: dotnet build --configuration Release
+
+      - name: Warren - .NET Migrations
+        uses: warrenbrasil/dotnet-migrations@v3
+        with:
+          project-path: ./SlackBskyUnfurl
+          startup-project-path: ./SlackBskyUnfurl
+          dotnet-ef-version: '8.0.x'
+          context: SlackBskyContext
+          connection: ${{ secrets.SQL_CONNECTION_STRING }}
 
       - name: update database
         working-directory: ./SlackBskyUnfurl
