@@ -28,6 +28,7 @@ public class SlackController : Controller {
         return this.Ok("test");
     }
 
+    [HttpGet("authorize")]
     public async Task<IActionResult>Authorize() {
         var clientId = this._configuration["SlackClientId"];
         if (clientId.IsNullOrEmpty()) {
@@ -38,6 +39,7 @@ public class SlackController : Controller {
             $"https://slack.com/oauth/v2/authorize?scope=links%3Aread%2Clinks%3Awrite&client_id={Uri.EscapeDataString(clientId)}");
     }
 
+    [HttpPost("access")]
     public async Task<IActionResult> Access([FromBody] JsonElement body) {
         var response = JsonConvert.DeserializeObject<ScopeResponse>(body.ToString(), new JsonSerializerSettings
         {
