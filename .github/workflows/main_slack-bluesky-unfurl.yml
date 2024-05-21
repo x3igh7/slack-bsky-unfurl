@@ -45,10 +45,11 @@ jobs:
       #   run: dotnet ef database update --project SlackBskyUnfurl --startup-project SlackBskyUnfurl
 
       - name: Run EF Migrations
+        working-directory: ./SlackBskyUnfurl
         run: |
           dotnet new tool-manifest
           dotnet tool install dotnet-ef
-          dotnet ef database update -p SlackBskyUnfurl --connection ${{ secrets.SQL_CONNECTION_STRING }}
+          dotnet ef database update --connection ${{ secrets.SQL_CONNECTION_STRING }}
 
       - name: dotnet publish
         working-directory: ./SlackBskyUnfurl
