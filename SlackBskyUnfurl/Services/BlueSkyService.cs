@@ -118,7 +118,10 @@ public class BlueSkyService : IBlueSkyService {
         // newtonsoft json deserializer doesn't like the $type, $link properties so we'll replace them first
         content = this.ReplacePropertyNames(content);
         var getPostThreadResponse =
-            JsonConvert.DeserializeObject<GetPostThreadResponse>(content);
+            JsonConvert.DeserializeObject<GetPostThreadResponse>(content, new JsonSerializerSettings
+            {
+                MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+            });
 
         if (getPostThreadResponse == null) {
             throw new InvalidOperationException("Failed to get post thread");
@@ -142,7 +145,10 @@ public class BlueSkyService : IBlueSkyService {
         this._logger.LogDebug($"ResolveHandle Result: {content}");
 
         var resolveHandleResponse =
-            JsonConvert.DeserializeObject<ResolveHandleResponse>(content);
+            JsonConvert.DeserializeObject<ResolveHandleResponse>(content, new JsonSerializerSettings
+            {
+                MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+            });
         if (resolveHandleResponse == null) {
             throw new InvalidOperationException("Failed to resolve handle");
         }
@@ -151,7 +157,10 @@ public class BlueSkyService : IBlueSkyService {
     }
 
     private async void SetSessionHeaders(HttpResponseMessage httpResponse) {
-        var response = JsonConvert.DeserializeObject<SessionResponse>(await httpResponse.Content.ReadAsStringAsync());
+        var response = JsonConvert.DeserializeObject<SessionResponse>(await httpResponse.Content.ReadAsStringAsync(), new JsonSerializerSettings
+        {
+            MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+        });
         if (response == null) {
             throw new InvalidOperationException("Failed to fetch session");
         }
@@ -164,6 +173,7 @@ public class BlueSkyService : IBlueSkyService {
             new AuthenticationHeaderValue("Bearer", this._accessToken);
     }
 
+    /// TODO: this can be removed and try to use metadata property handling 
     private string ReplacePropertyNames(string content) {
         content = content.Replace("$type", "type").Replace("$link", "link");
         return content;

@@ -1,6 +1,10 @@
 ﻿using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using SlackBskyUnfurl.Data;
+using SlackBskyUnfurl.Data.Models;
 using SlackBskyUnfurl.Models;
+using SlackBskyUnfurl.Models.Slack;
 using SlackBskyUnfurl.Services.Interfaces;
 using SlackNet;
 using SlackNet.Blocks;
@@ -11,17 +15,40 @@ namespace SlackBskyUnfurl.Services;
 
 public class SlackService : ISlackService {
     private readonly IBlueSkyService _blueSky;
+    private readonly SlackBskyContext _dbcontext;
     private readonly ILogger<SlackService> _logger;
-    public ISlackApiClient Client;
+    public ISlackApiClient? Client;
 
-    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration, ILogger<SlackService> logger) {
+    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration, SlackBskyContext dbcontext, ILogger<SlackService> logger) {
         this._blueSky = blueSkyService;
+        this._dbcontext = dbcontext;
         this._logger = logger;
+    }
 
-        var apiToken = configuration["SlackApiToken"];
-        var clientSecret = configuration["SlackClientSecret"];
-        var signingSecret = configuration["SlackSigningSecret"];
-        this.Client = new SlackServiceBuilder().UseApiToken(apiToken).GetApiClient();
+    public async Task<bool> SaveAccessToken(ScopeResponse scopeResponse) {
+        var existingWorkspace = await this._dbcontext.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == scopeResponse.Team.Id);
+        if (existingWorkspace != null) {
+            existingWorkspace.AccessToken = scopeResponse.AccessToken;
+            try {
+                await this._dbcontext.SaveChangesAsync();
+            }
+            catch (Exception e) {
+                throw new InvalidOperationException($"Error updating access token for team {scopeResponse.Team.Id}", e);
+            }
+        }
+
+        try {
+            await this._dbcontext.AuthorizedWorkspaces.AddAsync(new AuthorizedWorkspaceEntity
+            {
+                Id = Guid.NewGuid(),
+                TeamId = scopeResponse.Team.Id,
+                AccessToken = scopeResponse.AccessToken
+            });
+        } catch(Exception e)  {
+            throw new InvalidOperationException($"Error creating access token for team {scopeResponse.Team.Id}", e);
+        }
+
+        return true;
     }
 
     public async Task<string> HandleVerification(UrlVerification slackEvent) {
@@ -29,7 +56,10 @@ public class SlackService : ISlackService {
     }
 
     public async Task HandleIncomingEvent(JsonElement dynamicSlackEvent) {
-        var slackEvent = JsonConvert.DeserializeObject<EventCallback>(dynamicSlackEvent.ToString());
+        var slackEvent = JsonConvert.DeserializeObject<EventCallback>(dynamicSlackEvent.ToString(), new JsonSerializerSettings
+        {
+            MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+        });
         if (slackEvent.Event.Type == "link_shared") {
             var json = dynamicSlackEvent.GetProperty("event").ToString();
             LinkShared linkSharedEvent = null;
@@ -44,6 +74,12 @@ public class SlackService : ISlackService {
                 return;
             }
 
+            if (string.IsNullOrEmpty(slackEvent.TeamId)) {
+                throw new InvalidOperationException("TeamId is null or empty");
+            }  
+
+            this.SetClientToken(slackEvent.TeamId);
+
             await this.HandleLinkSharedAsync(linkSharedEvent);
         }
     }
@@ -51,6 +87,10 @@ public class SlackService : ISlackService {
     public async Task HandleLinkSharedAsync(LinkShared linkSharedEvent) {
         if (!linkSharedEvent.Links.Any(l => l.Url.Contains("bsky.app"))) {
             return;
+        }
+
+        if (this.Client == null) {
+            throw new InvalidOperationException("Slack client is null");
         }
 
         foreach (var link in linkSharedEvent.Links) {
@@ -145,7 +185,10 @@ public class SlackService : ISlackService {
                 { link.Url, unfurl }
             };
 
-            this._logger.LogDebug($"Unfurl Result: {JsonConvert.SerializeObject(unfurl)}");
+            this._logger.LogDebug($"Unfurl Result: {JsonConvert.SerializeObject(unfurl, new JsonSerializerSettings
+            {
+                MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+            })}");
 
             try {
                 await this.Client.Chat.Unfurl(
@@ -158,5 +201,19 @@ public class SlackService : ISlackService {
                 this._logger.LogError(e, "Error sending unfurl to slack");
             }
         }
+    }
+
+    private string GetAccessToken(string teamId) {
+        var workspace = this._dbcontext.AuthorizedWorkspaces.FirstOrDefault(w => w.TeamId == teamId);
+        if (workspace == null || string.IsNullOrEmpty(workspace.AccessToken)) {
+            throw new InvalidOperationException($"No access token found for team {teamId}");
+        }
+
+        return workspace.AccessToken;
+    }
+
+    private void SetClientToken(string teamId) {
+        var accessToken = this.GetAccessToken(teamId);
+        this.Client = new SlackServiceBuilder().UseApiToken(accessToken).GetApiClient();
     }
 }
