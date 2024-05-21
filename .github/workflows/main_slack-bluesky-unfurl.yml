@@ -31,7 +31,7 @@ jobs:
         with:
           project-path: ./SlackBskyUnfurl
           startup-project-path: ./SlackBskyUnfurl
-          dotnet-ef-version: '8.0.x'
+          dotnet-ef-version: '8.0.5'
           context: SlackBskyContext
           connection: ${{ secrets.SQL_CONNECTION_STRING }}
 
