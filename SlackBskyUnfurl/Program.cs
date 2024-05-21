@@ -37,10 +37,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-if (app.Environment.IsProduction()) {
-    app.Services.GetRequiredService<SlackBskyContext>().Database.Migrate();
-}
-
 app.UseStaticFiles();
 
 app.UseHttpsRedirection();

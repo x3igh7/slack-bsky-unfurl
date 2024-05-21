@@ -26,12 +26,11 @@ jobs:
         working-directory: ./SlackBskyUnfurl
         run: dotnet build --configuration Release
 
-      # - name: Run EF 
-      #   working-directory: ./SlackBskyUnfurl
-      #   run: | 
-      #       dotnet tool install --global dotnet-ef
-      #       dotnet tool restore
-      #       dotnet-ef database update --connection '${{ secrets.SQL_CONNECTION_STRING }}'
+      - name: Run EF 
+        run: | 
+            dotnet tool install --global dotnet-ef
+            dotnet tool restore
+            dotnet-ef database update -p SlackBskyUnfurl --connection '${{ secrets.SQL_CONNECTION_STRING }}'
 
       - name: dotnet publish
         working-directory: ./SlackBskyUnfurl
