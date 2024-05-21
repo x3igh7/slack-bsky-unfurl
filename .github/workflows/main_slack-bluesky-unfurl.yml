@@ -49,7 +49,7 @@ jobs:
         run: | 
             dotnet tool install --global dotnet-ef
             dotnet tool restore
-            dotnet ef database update --connection '${{ secrets.SQL_CONNECTION_STRING }}'
+            dotnet-ef database update --connection '${{ secrets.SQL_CONNECTION_STRING }}'
 
       - name: dotnet publish
         working-directory: ./SlackBskyUnfurl
