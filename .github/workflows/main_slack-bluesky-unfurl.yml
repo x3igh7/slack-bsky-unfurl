@@ -44,21 +44,15 @@ jobs:
       #   working-directory: ./SlackBskyUnfurl
       #   run: dotnet ef database update --project SlackBskyUnfurl --startup-project SlackBskyUnfurl
 
-      - name: Install EF Tool
+      - name: Run EF Migrations
         run: |
           dotnet new tool-manifest
           dotnet tool install dotnet-ef
-          dotnet ef database update --project ./SlackBskyUnfurl --startup-project ./SlackBskyUnfurl --context SlackBskyContext --connection ${{ secrets.SQL_CONNECTION_STRING }}
+          dotnet ef database update -p SlackBskyUnfurl --connection ${{ secrets.SQL_CONNECTION_STRING }}
 
       - name: dotnet publish
         working-directory: ./SlackBskyUnfurl
         run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/slack-bsky-unfurl
-
-      - name: Install EF Tool
-        run: |
-          dotnet new tool-manifest
-          dotnet tool install dotnet-ef
-          dotnet ef database update --context SlackBskyContext --connection ${{ secrets.SQL_CONNECTION_STRING }}
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v2
