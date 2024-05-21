@@ -26,30 +26,36 @@ jobs:
         working-directory: ./SlackBskyUnfurl
         run: dotnet build --configuration Release
 
-      - name: Install dotnet ef tool
-        shell: bash
-        run: dotnet tool install --global dotnet-ef
+      # - name: Update database
+      #   shell: bash
+      #   env:
+      #     PROJECT_PATH: ./SlackBskyUnfurl
+      #     STARTUP_PROJECT_PATH: ./SlackBskyUnfurl
+      #     CONTEXT: SlackBskyContext
+      #     CONNECTION: ${{ secrets.SQL_CONNECTION_STRING }}
+      #   run: |
+      #     export PATH=$PATH:$HOME/.dotnet/tools
+      #     . ~/.bashrc
+      #     dotnet tool restore
+      #     dotnet ef database update --verbose --project=$PROJECT_PATH --startup-project=$STARTUP_PROJECT_PATH --context $CONTEXT --connection $CONNECTION
 
-      - name: Update database
-        shell: bash
-        env:
-          PROJECT_PATH: ./SlackBskyUnfurl
-          STARTUP_PROJECT_PATH: ./SlackBskyUnfurl
-          CONTEXT: SlackBskyContext
-          CONNECTION: ${{ secrets.SQL_CONNECTION_STRING }}
-        run: |
-          export PATH=$PATH:$HOME/.dotnet/tools
-          . ~/.bashrc
-          dotnet tool restore
-          dotnet ef database update --verbose --project=$PROJECT_PATH --startup-project=$STARTUP_PROJECT_PATH --context $CONTEXT --connection $CONNECTION
 
-      - name: update database
-        working-directory: ./SlackBskyUnfurl
-        run: dotnet ef database update --project SlackBskyUnfurl --startup-project SlackBskyUnfurl
+      # - name: update database
+      #   working-directory: ./SlackBskyUnfurl
+      #   run: dotnet ef database update --project SlackBskyUnfurl --startup-project SlackBskyUnfurl
 
       - name: dotnet publish
         working-directory: ./SlackBskyUnfurl
         run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/slack-bsky-unfurl
+
+      - name: Install EF Tool
+        run: |
+          dotnet new tool-manifest
+          dotnet tool install dotnet-ef
+
+      - name: update database
+        working-directory: ${{env.DOTNET_ROOT}}/slack-bsky-unfurl
+        run: dotnet ef database update --project SlackBskyUnfurl --startup-project SlackBskyUnfurl --context SlackBskyContext --connection ${{ secrets.SQL_CONNECTION_STRING }}
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v2
