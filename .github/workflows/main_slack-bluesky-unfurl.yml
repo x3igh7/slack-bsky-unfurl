@@ -48,7 +48,7 @@ jobs:
         run: |
           dotnet new tool-manifest
           dotnet tool install dotnet-ef
-          dotnet ef database update --project SlackBskyUnfurl --startup-project SlackBskyUnfurl --context SlackBskyContext --connection ${{ secrets.SQL_CONNECTION_STRING }}
+          dotnet ef database update --project ./SlackBskyUnfurl --startup-project ./SlackBskyUnfurl --context SlackBskyContext --connection ${{ secrets.SQL_CONNECTION_STRING }}
 
       - name: dotnet publish
         working-directory: ./SlackBskyUnfurl
