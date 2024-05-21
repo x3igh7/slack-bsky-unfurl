@@ -26,12 +26,36 @@ jobs:
         working-directory: ./SlackBskyUnfurl
         run: dotnet build --configuration Release
 
+      # - name: Install dotnet ef tool
+      #   shell: bash
+      #   run: dotnet tool install --global dotnet-ef
+
+      # - name: Install dotnet ef tool
+      #   if: ${{ inputs.dotnet-ef-version != '' }}
+      #   shell: bash
+      #   env:
+      #     VERSION: ${{ inputs.dotnet-ef-version }}
+      #   run: dotnet tool install --global dotnet-ef --version $VERSION
+
+      # - name: Update database
+      #   shell: bash
+      #   env:
+      #     PROJECT_PATH: ${{ inputs.project-path }}
+      #     STARTUP_PROJECT_PATH: ${{ inputs.startup-project-path }}
+      #     CONTEXT: ${{ inputs.context }}
+      #     CONNECTION: ${{ inputs.connection }}
+      #   run: |
+      #     export PATH=$PATH:$HOME/.dotnet/tools
+      #     . ~/.bashrc
+      #     dotnet tool restore
+      #     dotnet ef database update --verbose --project=$PROJECT_PATH --startup-project=$STARTUP_PROJECT_PATH --context $CONTEXT --connection $CONNECTION
+
       - name: Warren - .NET Migrations
         uses: warrenbrasil/dotnet-migrations@v3
         with:
           project-path: ./SlackBskyUnfurl
           startup-project-path: ./SlackBskyUnfurl
-          dotnet-ef-version: '8.0.5'
+          dotnet-ef-version: ''
           context: SlackBskyContext
           connection: ${{ secrets.SQL_CONNECTION_STRING }}
 
