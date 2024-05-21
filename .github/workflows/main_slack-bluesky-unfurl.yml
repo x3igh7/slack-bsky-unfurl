@@ -26,30 +26,12 @@ jobs:
         working-directory: ./SlackBskyUnfurl
         run: dotnet build --configuration Release
 
-      # - name: Update database
-      #   shell: bash
-      #   env:
-      #     PROJECT_PATH: ./SlackBskyUnfurl
-      #     STARTUP_PROJECT_PATH: ./SlackBskyUnfurl
-      #     CONTEXT: SlackBskyContext
-      #     CONNECTION: ${{ secrets.SQL_CONNECTION_STRING }}
-      #   run: |
-      #     export PATH=$PATH:$HOME/.dotnet/tools
-      #     . ~/.bashrc
-      #     dotnet tool restore
-      #     dotnet ef database update --verbose --project=$PROJECT_PATH --startup-project=$STARTUP_PROJECT_PATH --context $CONTEXT --connection $CONNECTION
-
-
-      # - name: update database
+      # - name: Run EF 
       #   working-directory: ./SlackBskyUnfurl
-      #   run: dotnet ef database update --project SlackBskyUnfurl --startup-project SlackBskyUnfurl
-
-      - name: Run EF 
-        working-directory: ./SlackBskyUnfurl
-        run: | 
-            dotnet tool install --global dotnet-ef
-            dotnet tool restore
-            dotnet-ef database update --connection '${{ secrets.SQL_CONNECTION_STRING }}'
+      #   run: | 
+      #       dotnet tool install --global dotnet-ef
+      #       dotnet tool restore
+      #       dotnet-ef database update --connection '${{ secrets.SQL_CONNECTION_STRING }}'
 
       - name: dotnet publish
         working-directory: ./SlackBskyUnfurl
