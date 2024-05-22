@@ -25,35 +25,36 @@ public class SlackService : ISlackService {
         this._logger = logger;
     }
 
-    public async Task<bool> SaveAccessToken(OauthV2AccessResponse scopeResponse) {
+    public async Task<bool> SaveAccessToken(OauthV2AccessResponse accessResponse) {
         try {
             var existingWorkspace =
-                await this._dbcontext.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == scopeResponse.Team.Id);
+                await this._dbcontext.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == accessResponse.Team.Id);
             if (existingWorkspace != null) {
-                existingWorkspace.AccessToken = scopeResponse.AccessToken;
+                existingWorkspace.AccessToken = accessResponse.AccessToken;
                 try {
                     await this._dbcontext.SaveChangesAsync();
                 }
                 catch (Exception e) {
-                    throw new InvalidOperationException($"Error updating access token for team {scopeResponse.Team.Id}",
+                    throw new InvalidOperationException($"Error updating access token for team {accessResponse.Team.Id}",
                         e);
                 }
             }
         }
         catch(Exception e) {
-            throw new InvalidOperationException($"Error attempting to retrieve token for team {scopeResponse.Team.Id}", e);
+            throw new InvalidOperationException($"Error attempting to retrieve token for team {accessResponse.Team.Id}", e);
         }
 
 
         try {
-            await this._dbcontext.AuthorizedWorkspaces.AddAsync(new AuthorizedWorkspaceEntity
+            this._dbcontext.AuthorizedWorkspaces.Add(new AuthorizedWorkspaceEntity
             {
                 Id = Guid.NewGuid(),
-                TeamId = scopeResponse.Team.Id,
-                AccessToken = scopeResponse.AccessToken
+                TeamId = accessResponse.Team.Id,
+                AccessToken = accessResponse.AccessToken
             });
+            await this._dbcontext.SaveChangesAsync();
         } catch(Exception e)  {
-            throw new InvalidOperationException($"Error creating access token for team {scopeResponse.Team.Id}", e);
+            throw new InvalidOperationException($"Error creating access token for team {accessResponse.Team.Id}", e);
         }
 
         return true;
