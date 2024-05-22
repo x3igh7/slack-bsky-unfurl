@@ -9,7 +9,6 @@ using SlackBskyUnfurl.Services.Interfaces;
 using SlackNet;
 using SlackNet.Blocks;
 using SlackNet.Events;
-using SlackNet.WebApi;
 using LinkShared = SlackBskyUnfurl.Models.Slack.LinkShared;
 
 namespace SlackBskyUnfurl.Services;
@@ -20,7 +19,8 @@ public class SlackService : ISlackService {
     private readonly ILogger<SlackService> _logger;
     public ISlackApiClient? Client;
 
-    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration, SlackBskyContext dbcontext, ILogger<SlackService> logger) {
+    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration, SlackBskyContext dbcontext,
+        ILogger<SlackService> logger) {
         this._blueSky = blueSkyService;
         this._dbcontext = dbcontext;
         this._logger = logger;
@@ -36,26 +36,29 @@ public class SlackService : ISlackService {
                     await this._dbcontext.SaveChangesAsync();
                 }
                 catch (Exception e) {
-                    throw new InvalidOperationException($"Error updating access token for team {accessResponse.Team.Id}",
+                    throw new InvalidOperationException(
+                        $"Error updating access token for team {accessResponse.Team.Id}",
                         e);
                 }
             }
+            else {
+                try {
+                    this._dbcontext.AuthorizedWorkspaces.Add(new AuthorizedWorkspaceEntity {
+                        Id = Guid.NewGuid(),
+                        TeamId = accessResponse.Team.Id,
+                        AccessToken = accessResponse.AccessToken
+                    });
+                    await this._dbcontext.SaveChangesAsync();
+                }
+                catch (Exception e) {
+                    throw new InvalidOperationException(
+                        $"Error creating access token for team {accessResponse.Team.Id}", e);
+                }
+            }
         }
-        catch(Exception e) {
-            throw new InvalidOperationException($"Error attempting to retrieve token for team {accessResponse.Team.Id}", e);
-        }
-
-
-        try {
-            this._dbcontext.AuthorizedWorkspaces.Add(new AuthorizedWorkspaceEntity
-            {
-                Id = Guid.NewGuid(),
-                TeamId = accessResponse.Team.Id,
-                AccessToken = accessResponse.AccessToken
-            });
-            await this._dbcontext.SaveChangesAsync();
-        } catch(Exception e)  {
-            throw new InvalidOperationException($"Error creating access token for team {accessResponse.Team.Id}", e);
+        catch (Exception e) {
+            throw new InvalidOperationException($"Error attempting to retrieve token for team {accessResponse.Team.Id}",
+                e);
         }
 
         return true;
@@ -66,10 +69,10 @@ public class SlackService : ISlackService {
     }
 
     public async Task HandleIncomingEvent(JsonElement dynamicSlackEvent) {
-        var slackEvent = JsonConvert.DeserializeObject<EventCallback>(dynamicSlackEvent.ToString(), new JsonSerializerSettings
-        {
-            MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
-        });
+        var slackEvent = JsonConvert.DeserializeObject<EventCallback>(dynamicSlackEvent.ToString(),
+            new JsonSerializerSettings {
+                MetadataPropertyHandling = MetadataPropertyHandling.Ignore
+            });
         if (slackEvent.Event.Type == "link_shared") {
             var json = dynamicSlackEvent.GetProperty("event").ToString();
             LinkShared linkSharedEvent = null;
@@ -86,7 +89,7 @@ public class SlackService : ISlackService {
 
             if (string.IsNullOrEmpty(slackEvent.TeamId)) {
                 throw new InvalidOperationException("TeamId is null or empty");
-            }  
+            }
 
             this.SetClientToken(slackEvent.TeamId);
 
@@ -195,9 +198,8 @@ public class SlackService : ISlackService {
                 { link.Url, unfurl }
             };
 
-            this._logger.LogDebug($"Unfurl Result: {JsonConvert.SerializeObject(unfurl, new JsonSerializerSettings
-            {
-                MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+            this._logger.LogDebug($"Unfurl Result: {JsonConvert.SerializeObject(unfurl, new JsonSerializerSettings {
+                MetadataPropertyHandling = MetadataPropertyHandling.Ignore
             })}");
 
             try {
