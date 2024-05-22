@@ -20,6 +20,8 @@ builder.Services.AddDbContext<SlackBskyContext>(options => options.UseSqlServer(
 builder.Services.AddScoped<ISlackService, SlackService>();
 builder.Services.AddSingleton<IBlueSkyService, BlueSkyService>();
 
+builder.Services.AddMemoryCache();
+
 builder.Services.AddCors(options => options.AddDefaultPolicy(policyBuilder =>
     {
         policyBuilder
