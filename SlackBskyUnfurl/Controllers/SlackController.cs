@@ -83,7 +83,7 @@ public class SlackController : Controller {
 
         if (accessResponse == null || accessResponse.Ok == false) {
             this._logger.LogError($"Invalid AccessResponse: {content}");
-            return this.BadRequest("Invalid access response");
+            return this.BadRequest("Error fetching access token");
         }
 
         try {
