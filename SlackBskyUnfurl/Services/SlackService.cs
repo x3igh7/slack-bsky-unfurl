@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using SlackBskyUnfurl.Data;
 using SlackBskyUnfurl.Data.Models;
 using SlackBskyUnfurl.Models;
@@ -15,6 +16,7 @@ namespace SlackBskyUnfurl.Services;
 
 public class SlackService : ISlackService {
     private readonly IBlueSkyService _blueSky;
+    private readonly IConfiguration _configuration;
     private readonly SlackBskyContext _dbcontext;
     private readonly ILogger<SlackService> _logger;
     public ISlackApiClient? Client;
@@ -22,6 +24,7 @@ public class SlackService : ISlackService {
     public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration, SlackBskyContext dbcontext,
         ILogger<SlackService> logger) {
         this._blueSky = blueSkyService;
+        this._configuration = configuration;
         this._dbcontext = dbcontext;
         this._logger = logger;
     }
@@ -69,8 +72,12 @@ public class SlackService : ISlackService {
     }
 
     public async Task HandleIncomingEvent(JsonElement dynamicSlackEvent) {
+        var contractResolver = new DefaultContractResolver {
+            NamingStrategy = new SnakeCaseNamingStrategy()
+        };
         var slackEvent = JsonConvert.DeserializeObject<EventCallback>(dynamicSlackEvent.ToString(),
             new JsonSerializerSettings {
+                ContractResolver = contractResolver,
                 MetadataPropertyHandling = MetadataPropertyHandling.Ignore
             });
         if (slackEvent.Event.Type == "link_shared") {
@@ -91,7 +98,7 @@ public class SlackService : ISlackService {
                 throw new InvalidOperationException("TeamId is null or empty");
             }
 
-            this.SetClientToken(slackEvent.TeamId);
+            await this.SetClientToken(slackEvent.TeamId);
 
             await this.HandleLinkSharedAsync(linkSharedEvent);
         }
@@ -215,17 +222,37 @@ public class SlackService : ISlackService {
         }
     }
 
-    private string GetAccessToken(string teamId) {
-        var workspace = this._dbcontext.AuthorizedWorkspaces.FirstOrDefault(w => w.TeamId == teamId);
-        if (workspace == null || string.IsNullOrEmpty(workspace.AccessToken)) {
-            throw new InvalidOperationException($"No access token found for team {teamId}");
-        }
+    private async Task<string> GetAccessToken(string teamId) {
+        // these methods are all run as async tasks so we need to ensure dbcontext
+        try {
+            var contextOptions = new DbContextOptionsBuilder<SlackBskyContext>()
+                .UseSqlServer(this._configuration.GetConnectionString("Remote"))
+                .Options;
+            await using (var db = new SlackBskyContext(contextOptions)) {
+                try {
+                    var workspace = await db.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == teamId);
+                    if (workspace == null || string.IsNullOrEmpty(workspace.AccessToken)) {
+                        this._logger.LogError($"No access token found for team {teamId}");
+                        throw new InvalidOperationException($"No access token found for team {teamId}");
+                    }
 
-        return workspace.AccessToken;
+                    return workspace.AccessToken;
+                }
+                catch (Exception e) {
+                    this._logger.LogError(e, $"Error fetching access token for team {teamId}");
+                    throw new InvalidOperationException($"Error fetching access token for team {teamId}", e);
+                }
+            }
+        }
+        catch (Exception e) {
+            this._logger.LogError(e, "Error initializing Db Context");
+            throw new InvalidOperationException("Error initializing Db Context", e);
+        }
+        
     }
 
-    private void SetClientToken(string teamId) {
-        var accessToken = this.GetAccessToken(teamId);
+    private async Task SetClientToken(string teamId) {
+        var accessToken = await this.GetAccessToken(teamId);
         this.Client = new SlackServiceBuilder().UseApiToken(accessToken).GetApiClient();
     }
 }

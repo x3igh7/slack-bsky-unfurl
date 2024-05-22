@@ -17,7 +17,7 @@ builder.Services.AddSnapshotCollector();
 
 builder.Services.AddDbContext<SlackBskyContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Remote")));
 
-builder.Services.AddScoped<ISlackService, SlackService>();
+builder.Services.AddTransient<ISlackService, SlackService>();
 builder.Services.AddSingleton<IBlueSkyService, BlueSkyService>();
 
 builder.Services.AddMemoryCache();
