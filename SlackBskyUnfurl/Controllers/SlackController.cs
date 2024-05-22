@@ -53,12 +53,15 @@ public class SlackController : Controller {
             return this.BadRequest("Invalid request");
         }
 
-        var isStateValid = this._cache.Get(state) != null;
-        if (!isStateValid) {
-            this._logger.LogError($"Invalid state: {state}");
-            return this.BadRequest("Invalid state");
+        if (!string.IsNullOrEmpty(state)) {
+            var isStateValid = this._cache.Get(state) != null;
+            if (!isStateValid)
+            {
+                this._logger.LogError($"Invalid state: {state}");
+                return this.BadRequest("Invalid state");
+            }
+            this._cache.Remove(state);
         }
-        this._cache.Remove(state);
 
         var response = await httpClient.PostAsJsonAsync("https://slack.com/api/oauth.v2.access", new {
             client_id = this._configuration["SlackClientId"],
