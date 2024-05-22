@@ -63,11 +63,12 @@ public class SlackController : Controller {
             this._cache.Remove(state);
         }
 
-        var response = await httpClient.PostAsJsonAsync("https://slack.com/api/oauth.v2.access", new {
-            client_id = this._configuration["SlackClientId"],
-            client_secret = this._configuration["SlackClientSecret"],
-            code = code
-        });
+        var accessContent = new Dictionary<string, string> {
+            { "client_id", this._configuration["SlackClientId"] },
+            { "client_secret", this._configuration["SlackClientSecret"] },
+            { "code", code }
+        };
+        var response = await httpClient.PostAsync("https://slack.com/api/oauth.v2.access", new FormUrlEncodedContent(accessContent));
 
         if (!response.IsSuccessStatusCode) {
             this._logger.LogError($"Error fetching access token: {await response.Content.ReadAsStringAsync()}");
@@ -93,7 +94,7 @@ public class SlackController : Controller {
             this.BadRequest("Error saving access token");
         }
 
-        return this.Ok("Success!");
+        return this.Ok("Success! The app has registered your workspace.");
     }
 
     [HttpPost("events/handle")]
