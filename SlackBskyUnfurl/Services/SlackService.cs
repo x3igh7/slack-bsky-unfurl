@@ -4,11 +4,11 @@ using Newtonsoft.Json;
 using SlackBskyUnfurl.Data;
 using SlackBskyUnfurl.Data.Models;
 using SlackBskyUnfurl.Models;
-using SlackBskyUnfurl.Models.Slack;
 using SlackBskyUnfurl.Services.Interfaces;
 using SlackNet;
 using SlackNet.Blocks;
 using SlackNet.Events;
+using SlackNet.WebApi;
 using LinkShared = SlackBskyUnfurl.Models.Slack.LinkShared;
 
 namespace SlackBskyUnfurl.Services;
@@ -25,17 +25,25 @@ public class SlackService : ISlackService {
         this._logger = logger;
     }
 
-    public async Task<bool> SaveAccessToken(ScopeResponse scopeResponse) {
-        var existingWorkspace = await this._dbcontext.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == scopeResponse.Team.Id);
-        if (existingWorkspace != null) {
-            existingWorkspace.AccessToken = scopeResponse.AccessToken;
-            try {
-                await this._dbcontext.SaveChangesAsync();
-            }
-            catch (Exception e) {
-                throw new InvalidOperationException($"Error updating access token for team {scopeResponse.Team.Id}", e);
+    public async Task<bool> SaveAccessToken(OauthV2AccessResponse scopeResponse) {
+        try {
+            var existingWorkspace =
+                await this._dbcontext.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == scopeResponse.Team.Id);
+            if (existingWorkspace != null) {
+                existingWorkspace.AccessToken = scopeResponse.AccessToken;
+                try {
+                    await this._dbcontext.SaveChangesAsync();
+                }
+                catch (Exception e) {
+                    throw new InvalidOperationException($"Error updating access token for team {scopeResponse.Team.Id}",
+                        e);
+                }
             }
         }
+        catch(Exception e) {
+            throw new InvalidOperationException($"Error attempting to retrieve token for team {scopeResponse.Team.Id}", e);
+        }
+
 
         try {
             await this._dbcontext.AuthorizedWorkspaces.AddAsync(new AuthorizedWorkspaceEntity

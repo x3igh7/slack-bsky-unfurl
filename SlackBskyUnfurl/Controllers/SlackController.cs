@@ -8,6 +8,7 @@ using SlackBskyUnfurl.Data;
 using SlackBskyUnfurl.Models.Slack;
 using SlackBskyUnfurl.Services.Interfaces;
 using SlackNet.Events;
+using SlackNet.WebApi;
 
 namespace SlackBskyUnfurl.Controllers;
 
@@ -76,12 +77,12 @@ public class SlackController : Controller {
         }
 
         var content = await response.Content.ReadAsStringAsync();
-        var accessResponse = JsonConvert.DeserializeObject<ScopeResponse>(content, new JsonSerializerSettings
+        var accessResponse = JsonConvert.DeserializeObject<OauthV2AccessResponse>(content, new JsonSerializerSettings
         {
             MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
         });
 
-        if (accessResponse == null || accessResponse.Ok == false) {
+        if (accessResponse == null || accessResponse.Team == null) {
             this._logger.LogError($"Invalid AccessResponse: {content}");
             return this.BadRequest("Error fetching access token");
         }
