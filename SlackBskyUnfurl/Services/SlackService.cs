@@ -21,12 +21,16 @@ public class SlackService : ISlackService {
     private readonly ILogger<SlackService> _logger;
     public ISlackApiClient? Client;
 
-    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration, SlackBskyContext dbcontext,
+    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration,
         ILogger<SlackService> logger) {
         this._blueSky = blueSkyService;
         this._configuration = configuration;
-        this._dbcontext = dbcontext;
         this._logger = logger;
+
+        var contextOptions = new DbContextOptionsBuilder<SlackBskyContext>()
+            .UseSqlServer(this._configuration.GetConnectionString("Remote"))
+            .Options;
+        this._dbcontext = new SlackBskyContext(contextOptions);
     }
 
     public async Task<bool> SaveAccessToken(ScopeResponse accessResponse) {
@@ -223,32 +227,19 @@ public class SlackService : ISlackService {
     }
 
     private async Task<string> GetAccessToken(string teamId) {
-        // these methods are all run as async tasks so we need to ensure dbcontext
         try {
-            var contextOptions = new DbContextOptionsBuilder<SlackBskyContext>()
-                .UseSqlServer(this._configuration.GetConnectionString("Remote"))
-                .Options;
-            await using (var db = new SlackBskyContext(contextOptions)) {
-                try {
-                    var workspace = await db.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == teamId);
-                    if (workspace == null || string.IsNullOrEmpty(workspace.AccessToken)) {
-                        this._logger.LogError($"No access token found for team {teamId}");
-                        throw new InvalidOperationException($"No access token found for team {teamId}");
-                    }
-
-                    return workspace.AccessToken;
-                }
-                catch (Exception e) {
-                    this._logger.LogError(e, $"Error fetching access token for team {teamId}");
-                    throw new InvalidOperationException($"Error fetching access token for team {teamId}", e);
-                }
+            var workspace = await this._dbcontext.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == teamId);
+            if (workspace == null || string.IsNullOrEmpty(workspace.AccessToken)) {
+                this._logger.LogError($"No access token found for team {teamId}");
+                throw new InvalidOperationException($"No access token found for team {teamId}");
             }
+
+            return workspace.AccessToken;
         }
         catch (Exception e) {
-            this._logger.LogError(e, "Error initializing Db Context");
-            throw new InvalidOperationException("Error initializing Db Context", e);
+            this._logger.LogError(e, $"Error fetching access token for team {teamId}");
+            throw new InvalidOperationException($"Error fetching access token for team {teamId}", e);
         }
-        
     }
 
     private async Task SetClientToken(string teamId) {
