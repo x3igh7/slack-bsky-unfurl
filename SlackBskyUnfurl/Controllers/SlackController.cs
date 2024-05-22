@@ -45,7 +45,7 @@ public class SlackController : Controller {
             $"https://slack.com/oauth/v2/authorize?scope=links%3Aread%2Clinks%3Awrite&client_id={Uri.EscapeDataString(clientId)}&state={stateString}");
     }
 
-    [HttpPost("access")]
+    [HttpGet("access")]
     public async Task<IActionResult> Access([FromQuery] string code, [FromQuery] string state) {
         var httpClient = new HttpClient();
         if (code.IsNullOrEmpty() || state.IsNullOrEmpty()) {
