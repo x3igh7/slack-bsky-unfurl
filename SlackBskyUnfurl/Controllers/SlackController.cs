@@ -46,10 +46,10 @@ public class SlackController : Controller {
     }
 
     [HttpGet("access")]
-    public async Task<IActionResult> Access([FromQuery] string code, [FromQuery] string state) {
+    public async Task<IActionResult> Access([FromQuery] string code, [FromQuery] string? state) {
         var httpClient = new HttpClient();
-        if (code.IsNullOrEmpty() || state.IsNullOrEmpty()) {
-            this._logger.LogError($"Invalid request: code={code}, state={state}");
+        if (code.IsNullOrEmpty()) {
+            this._logger.LogError($"Invalid request: code={code}");
             return this.BadRequest("Invalid request");
         }
 
@@ -80,7 +80,7 @@ public class SlackController : Controller {
             MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
         });
 
-        if (accessResponse == null) {
+        if (accessResponse == null || accessResponse.Ok == false) {
             this._logger.LogError($"Invalid AccessResponse: {content}");
             return this.BadRequest("Invalid access response");
         }
