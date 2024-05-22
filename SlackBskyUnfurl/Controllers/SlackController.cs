@@ -64,6 +64,8 @@ public class SlackController : Controller {
             this._cache.Remove(state);
         }
 
+        var test = this._configuration.GetConnectionString("Remote");
+
         var accessContent = new Dictionary<string, string> {
             { "client_id", this._configuration["SlackClientId"] },
             { "client_secret", this._configuration["SlackClientSecret"] },
@@ -77,10 +79,7 @@ public class SlackController : Controller {
         }
 
         var content = await response.Content.ReadAsStringAsync();
-        var accessResponse = JsonConvert.DeserializeObject<OauthV2AccessResponse>(content, new JsonSerializerSettings
-        {
-            MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
-        });
+        var accessResponse = JsonConvert.DeserializeObject<ScopeResponse>(content);
 
         if (accessResponse == null || accessResponse.Team == null) {
             this._logger.LogError($"Invalid AccessResponse: {content}");

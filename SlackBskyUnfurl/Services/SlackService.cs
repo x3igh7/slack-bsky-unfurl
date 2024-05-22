@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using SlackBskyUnfurl.Data;
 using SlackBskyUnfurl.Data.Models;
 using SlackBskyUnfurl.Models;
+using SlackBskyUnfurl.Models.Slack;
 using SlackBskyUnfurl.Services.Interfaces;
 using SlackNet;
 using SlackNet.Blocks;
@@ -25,7 +26,7 @@ public class SlackService : ISlackService {
         this._logger = logger;
     }
 
-    public async Task<bool> SaveAccessToken(OauthV2AccessResponse accessResponse) {
+    public async Task<bool> SaveAccessToken(ScopeResponse accessResponse) {
         try {
             var existingWorkspace =
                 await this._dbcontext.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == accessResponse.Team.Id);
