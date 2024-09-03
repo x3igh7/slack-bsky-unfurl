@@ -15,7 +15,7 @@ namespace SlackBskyUnfurl.Services
             var linkToPost = new SectionBlock
             {
                 Text = new Markdown(
-                    $@">>> *{Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)}*{"\n"}{externalEmbed.External.Description}"),
+                    $@">>> *{Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)}*\n{externalEmbed.External.Description}"),
                 Accessory = new Image
                 {
                     ImageUrl = externalEmbed.External.Thumb,
@@ -77,8 +77,10 @@ namespace SlackBskyUnfurl.Services
         {
             var externalBlock = new SectionBlock
             {
-                Text = new Markdown(
-                    $@"{Link.Url(unfurlResult.Thread.Post.Embed.External.Uri, unfurlResult.Thread.Post.Embed.External.Title)}{"\n"}{unfurlResult.Thread.Post.Embed.External.Description}"),
+                Text = new Markdown{
+                    Text = $@"{Link.Url(unfurlResult.Thread.Post.Embed.External.Uri, unfurlResult.Thread.Post.Embed.External.Title)}\n{unfurlResult.Thread.Post.Embed.External.Description.ReplaceLineEndings("\n")}",
+                    Verbatim = true
+                },
                 Accessory = new Image
                 {
                     ImageUrl = unfurlResult.Thread.Post.Embed.External.Thumb,
@@ -91,11 +93,13 @@ namespace SlackBskyUnfurl.Services
         public static Block CreatePostTextBlock(GetPostThreadResponse postThread)
         {
             var text = GetPostText(postThread.Thread.Post.Record);
-
+            var sectionText = new Markdown {
+                Text = $@"{GetAuthorLine(postThread.Thread.Post.Author)}\n{text}",
+                Verbatim = true
+            };
             var mainTextBlock = new SectionBlock
             {
-                Text = new Markdown(
-                    $@"{GetAuthorLine(postThread.Thread.Post.Author)}{"\n"}{text}")
+                Text = sectionText.ToString()
             };
 
             return mainTextBlock;
@@ -108,7 +112,10 @@ namespace SlackBskyUnfurl.Services
 
             var mainTextBlock = new SectionBlock
             {
-                Text = new Markdown($@"{nestedText}{GetAuthorLine(record.Author)}{"\n"}{text}")
+                Text = new Markdown{
+                    Text = $@"{nestedText}{GetAuthorLine(record.Author)}\n{text}",
+                    Verbatim = true
+                }
             };
 
             return mainTextBlock;
