@@ -6,6 +6,7 @@ using SlackNet.Blocks;
 using SlackNet;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.IdentityModel.Tokens;
 
 namespace SlackBskyUnfurl.Services
 {
@@ -14,6 +15,14 @@ namespace SlackBskyUnfurl.Services
         public static SectionBlock CreateEmbedExternalLinkBlock(EmbedView externalEmbed)
         {
             var descriptionText = Regex.Replace(externalEmbed.External.Description, @"\n", $"{'\n'}");
+            if (externalEmbed.External.Thumb.IsNullOrEmpty()) {
+                return new SectionBlock
+                {
+                    Text = new Markdown(
+                        $@">>> *{Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)}*{'\n'}{descriptionText}"),
+                };
+            }
+
             var linkToPost = new SectionBlock
             {
                 Text = new Markdown(
@@ -27,7 +36,23 @@ namespace SlackBskyUnfurl.Services
             return linkToPost;
         }
 
-        public static SectionBlock CreateEmbedViewRecordLinkBlock(EmbedView embedRecord) {
+        public static SectionBlock? CreateEmbedViewRecordLinkBlock(EmbedView embedRecord) {
+            // sometimes the record is more deeply embeded and also ensure there's a URI
+            if (embedRecord.Record!.Uri.IsNullOrEmpty()) {
+                if (embedRecord.Record.Record == null || embedRecord.Record.Record.Uri.IsNullOrEmpty()) {
+                    return null;
+                }
+
+                var deepEmbedRecordPostId = embedRecord.Record.Record.Uri.Split("/").Last();
+                var embedUrl = $"https://bsky.app/profile/{embedRecord.Record.Record.Author.Handle}/post/{deepEmbedRecordPostId}";
+
+                return new SectionBlock
+                {
+                    Text = new Markdown($@">>>{new Link(embedUrl, embedUrl)}")
+                };
+
+            }
+
             var postId = embedRecord.Record.Uri.Split("/").Last();
             var url = $"https://bsky.app/profile/{embedRecord.Record.Author.Handle}/post/{postId}";
             var linkToPost = new SectionBlock
@@ -78,11 +103,19 @@ namespace SlackBskyUnfurl.Services
         public static SectionBlock CreateExternalBlock(GetPostThreadResponse unfurlResult)
         {
             var descriptionText = Regex.Replace(unfurlResult.Thread.Post.Embed.External.Description, @"\n", $"{'\n'}");
+            if (unfurlResult.Thread.Post.Embed.External.Thumb.IsNullOrEmpty()) {
+                return new SectionBlock {
+                    Text = new Markdown {
+                        Text =
+                            $@"{Link.Url(unfurlResult.Thread.Post.Embed.External.Uri, unfurlResult.Thread.Post.Embed.External.Title)}{'\n'}{descriptionText}",
+                    }
+                };
+            }
+
             var externalBlock = new SectionBlock
             {
                 Text = new Markdown{
                     Text = $@"{Link.Url(unfurlResult.Thread.Post.Embed.External.Uri, unfurlResult.Thread.Post.Embed.External.Title)}{'\n'}{descriptionText}",
-                    Verbatim = true
                 },
                 Accessory = new Image
                 {
@@ -100,7 +133,6 @@ namespace SlackBskyUnfurl.Services
             var text = $@"{GetAuthorLine(postThread.Thread.Post.Author)}{'\n'}{postText}";
             var sectionText = new Markdown {
                 Text = @text,
-                Verbatim = true
             };
             var mainTextBlock = new SectionBlock
             {
@@ -121,8 +153,7 @@ namespace SlackBskyUnfurl.Services
             var mainTextBlock = new SectionBlock
             {
                 Text = new Markdown{
-                    Text = $@"{nestedText}{GetAuthorLine(record.Author)}\n{text}",
-                    Verbatim = true
+                    Text = $@"{nestedText}{GetAuthorLine(record.Author)}{'\n'}{text}",
                 }
             };
 

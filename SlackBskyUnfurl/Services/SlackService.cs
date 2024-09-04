@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using SlackBskyUnfurl.Data;
@@ -173,7 +174,9 @@ public class SlackService : ISlackService {
                         var recordEmbed = embedRecord.Embeds.FirstOrDefault(e => e.Record != null);
                         if (recordEmbed != null) {
                             var recordLinkBlock = SlackBlockCreator.CreateEmbedViewRecordLinkBlock(recordEmbed);
-                            unfurl.Blocks.Add(recordLinkBlock);
+                            if (recordLinkBlock != null) {
+                                unfurl.Blocks.Add(recordLinkBlock);
+                            }
                         }
                     }
 
