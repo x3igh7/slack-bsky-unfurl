@@ -5,6 +5,7 @@ using SlackBskyUnfurl.Models;
 using SlackNet.Blocks;
 using SlackNet;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace SlackBskyUnfurl.Services
 {
@@ -12,10 +13,11 @@ namespace SlackBskyUnfurl.Services
     {
         public static SectionBlock CreateEmbedExternalLinkBlock(EmbedView externalEmbed)
         {
+            var descriptionText = Regex.Replace(externalEmbed.External.Description, @"\n", "\\n");
             var linkToPost = new SectionBlock
             {
                 Text = new Markdown(
-                    $@">>> *{Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)}*\n{externalEmbed.External.Description}"),
+                    $@">>> *{Link.Url(externalEmbed.External.Uri, externalEmbed.External.Title)}*\n{descriptionText}"),
                 Accessory = new Image
                 {
                     ImageUrl = externalEmbed.External.Thumb,
@@ -75,10 +77,11 @@ namespace SlackBskyUnfurl.Services
 
         public static SectionBlock CreateExternalBlock(GetPostThreadResponse unfurlResult)
         {
+            var descriptionText = Regex.Replace(unfurlResult.Thread.Post.Embed.External.Description, @"\n", "\\n");
             var externalBlock = new SectionBlock
             {
                 Text = new Markdown{
-                    Text = $@"{Link.Url(unfurlResult.Thread.Post.Embed.External.Uri, unfurlResult.Thread.Post.Embed.External.Title)}\n{unfurlResult.Thread.Post.Embed.External.Description.ReplaceLineEndings("\n")}",
+                    Text = $@"{Link.Url(unfurlResult.Thread.Post.Embed.External.Uri, unfurlResult.Thread.Post.Embed.External.Title)}\n{descriptionText}",
                     Verbatim = true
                 },
                 Accessory = new Image
@@ -92,14 +95,16 @@ namespace SlackBskyUnfurl.Services
 
         public static Block CreatePostTextBlock(GetPostThreadResponse postThread)
         {
-            var text = GetPostText(postThread.Thread.Post.Record);
+            var postText = GetPostText(postThread.Thread.Post.Record);
+            postText = Regex.Replace(postText, @"\n", "\\n");
+            var text = $@"{GetAuthorLine(postThread.Thread.Post.Author)}\n{postText}";
             var sectionText = new Markdown {
-                Text = $@"{GetAuthorLine(postThread.Thread.Post.Author)}\n{text}",
+                Text = @text,
                 Verbatim = true
             };
             var mainTextBlock = new SectionBlock
             {
-                Text = sectionText.ToString()
+                Text = sectionText
             };
 
             return mainTextBlock;
@@ -108,7 +113,10 @@ namespace SlackBskyUnfurl.Services
         public static Block CreateRecordViewTextBlock(RecordView record, bool isNested = false)
         {
             var text = GetPostText(record.Value);
+            text = Regex.Replace(text, @"\n", "\\n");
+            
             var nestedText = isNested ? ">>> " : string.Empty;
+            nestedText = Regex.Replace(nestedText, @"\n", "\\n");
 
             var mainTextBlock = new SectionBlock
             {
