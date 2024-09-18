@@ -1,7 +1,6 @@
 ﻿using SlackBskyUnfurl.Models.Bsky.Responses;
 using SlackBskyUnfurl.Models.Bsky;
 using SlackBskyUnfurl.Models.Slack;
-using SlackBskyUnfurl.Models;
 using SlackNet.Blocks;
 using SlackNet;
 using System.Text;

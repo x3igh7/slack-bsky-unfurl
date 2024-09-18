@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using SlackBskyUnfurl.Data;
 using SlackBskyUnfurl.Data.Models;
-using SlackBskyUnfurl.Models;
+using SlackBskyUnfurl.Models.Bsky;
 using SlackBskyUnfurl.Models.Slack;
 using SlackBskyUnfurl.Services.Interfaces;
 using SlackNet;
@@ -151,6 +151,13 @@ public class SlackService : ISlackService {
                 if (unfurlResult.Thread.Post.Embed.Images != null && unfurlResult.Thread.Post.Embed.Images.Any()) {
                     var imageBlocks = SlackBlockCreator.CreateImageViewBlocks(unfurlResult.Thread.Post.Embed.Images);
                     imageBlocks.ForEach(i => unfurl.Blocks.Add(i));
+                }
+
+                // if the post had video, add it
+                if (unfurlResult.Thread.Post.Embed.Video != null &&
+                    !unfurlResult.Thread.Post.Embed.Video.Playlist.IsNullOrEmpty()) {
+                    //var videoBlock = "this";
+                    //unfurl.Blocks.Add(videoBlock);
                 }
 
                 // If the post has media, add it.

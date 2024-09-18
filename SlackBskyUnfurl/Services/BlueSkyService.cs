@@ -116,7 +116,7 @@ public class BlueSkyService : IBlueSkyService {
         }
 
         // newtonsoft json deserializer doesn't like the $type, $link properties so we'll replace them first
-        content = this.ReplacePropertyNames(content);
+        //content = this.ReplacePropertyNames(content);
         var getPostThreadResponse =
             JsonConvert.DeserializeObject<GetPostThreadResponse>(content, new JsonSerializerSettings
             {
