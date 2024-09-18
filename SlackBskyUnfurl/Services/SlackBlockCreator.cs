@@ -70,23 +70,22 @@ namespace SlackBskyUnfurl.Services
             return imageBlocks;
         }
 
-        public static VideoBlock CreateVideoBlock(VideoView video)
+        // this will actually return an image block as a placeholder for the video since video doesnt seem to work
+        public static ImageBlock CreateVideoBlock(VideoView video)
         {
             if (video.Alt.IsNullOrEmpty()) {
-                return new VideoBlock
-                {
+                return new ImageBlock {
+                    ImageUrl = video.Thumbnail,
                     Title = "Video",
-                    VideoUrl = video.Playlist,
-                    ThumbnailUrl = video.Thumbnail,
+                    AltText = "Video"
                 };
             }
 
-            return new VideoBlock
+            return new ImageBlock
             {
-                Title = "Video",
-                VideoUrl = video.Playlist,
-                ThumbnailUrl = video.Thumbnail,
-                AltText = video.Alt
+                ImageUrl = video.Thumbnail,
+                AltText = video.Alt,
+                Title = "Video"
             };
         }
 

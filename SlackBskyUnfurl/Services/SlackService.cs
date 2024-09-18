@@ -154,9 +154,9 @@ public class SlackService : ISlackService {
                 }
 
                 // if the post had video, add it
-                if (unfurlResult.Thread.Post.Embed.Video != null &&
-                    !unfurlResult.Thread.Post.Embed.Video.Playlist.IsNullOrEmpty()) {
-                    var videoBlock = SlackBlockCreator.CreateVideoBlock(unfurlResult.Thread.Post.Embed.Video);
+                if (unfurlResult.Thread.Post.Embed != null &&
+                    !unfurlResult.Thread.Post.Embed.Playlist.IsNullOrEmpty()) {
+                    var videoBlock = SlackBlockCreator.CreateVideoBlock(unfurlResult.Thread.Post.Embed);
                     unfurl.Blocks.Add(videoBlock);
                 }
 
@@ -223,17 +223,14 @@ public class SlackService : ISlackService {
                     }
 
                     // if the sub record has video, add it
-                    if (embedRecord.Embeds.Any(e => e.Video != null && !e.Video.Playlist.IsNullOrEmpty())) {
+                    if (embedRecord.Embeds.Any(e => e.Type.Contains("video") && !e.Playlist.IsNullOrEmpty())) {
                         var embedsWithVideo = embedRecord.Embeds
-                            .Where(e => e.Video != null && !e.Video.Playlist.IsNullOrEmpty())
+                            .Where(e => e.Type.Contains("video") && !e.Playlist.IsNullOrEmpty())
                             .ToList();
                         if (embedsWithVideo.Any()) {
-                            var embedVideos = embedsWithVideo.Select(e => e.Video);
-                            foreach (var embedVideo in embedVideos) {
-                                var videoBlock = SlackBlockCreator.CreateVideoBlock(embedVideos.First());
+                            foreach (var videoBlock in embedsWithVideo.Select(SlackBlockCreator.CreateVideoBlock)) {
                                 unfurl.Blocks.Add(videoBlock);
                             }
-
                         }
                     }
                 }
