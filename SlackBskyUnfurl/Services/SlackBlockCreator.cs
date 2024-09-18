@@ -70,6 +70,26 @@ namespace SlackBskyUnfurl.Services
             return imageBlocks;
         }
 
+        public static VideoBlock CreateVideoBlock(VideoView video)
+        {
+            if (video.Alt.IsNullOrEmpty()) {
+                return new VideoBlock
+                {
+                    Title = "Video",
+                    VideoUrl = video.Playlist,
+                    ThumbnailUrl = video.Thumbnail,
+                };
+            }
+
+            return new VideoBlock
+            {
+                Title = "Video",
+                VideoUrl = video.Playlist,
+                ThumbnailUrl = video.Thumbnail,
+                AltText = video.Alt
+            };
+        }
+
         public static ContextBlock CreateLinkContextBlock(string uri, bool isNested = false)
         {
             var url = new Uri(uri);

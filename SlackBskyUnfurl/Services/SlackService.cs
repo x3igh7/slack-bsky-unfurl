@@ -156,8 +156,8 @@ public class SlackService : ISlackService {
                 // if the post had video, add it
                 if (unfurlResult.Thread.Post.Embed.Video != null &&
                     !unfurlResult.Thread.Post.Embed.Video.Playlist.IsNullOrEmpty()) {
-                    //var videoBlock = "this";
-                    //unfurl.Blocks.Add(videoBlock);
+                    var videoBlock = SlackBlockCreator.CreateVideoBlock(unfurlResult.Thread.Post.Embed.Video);
+                    unfurl.Blocks.Add(videoBlock);
                 }
 
                 // If the post has media, add it.
@@ -167,6 +167,15 @@ public class SlackService : ISlackService {
                     var mediaImages = unfurlResult.Thread.Post.Embed.Media.Images;
                     var imageBlocks = SlackBlockCreator.CreateImageViewBlocks(mediaImages);
                     imageBlocks.ForEach(i => unfurl.Blocks.Add(i));
+                }
+
+                // check for media video
+                if (unfurlResult.Thread.Post.Embed.Media?.Video != null &&
+                    !unfurlResult.Thread.Post.Embed.Media.Video.Playlist.IsNullOrEmpty())
+                {
+                    var mediaVideo = unfurlResult.Thread.Post.Embed.Media.Video;
+                    var videoBlock = SlackBlockCreator.CreateVideoBlock(mediaVideo);
+                    unfurl.Blocks.Add(videoBlock);
                 }
 
                 // I honestly have no idea why there are different types of embeds here, bluesky seems very inconsistent for some reason on this
@@ -210,6 +219,21 @@ public class SlackService : ISlackService {
                                 .SelectMany(images => images.Images ?? Array.Empty<ImageView>());
                             var imageBlocks = SlackBlockCreator.CreateImageViewBlocks(embedImages);
                             imageBlocks.ForEach(i => unfurl.Blocks.Add(i));
+                        }
+                    }
+
+                    // if the sub record has video, add it
+                    if (embedRecord.Embeds.Any(e => e.Video != null && !e.Video.Playlist.IsNullOrEmpty())) {
+                        var embedsWithVideo = embedRecord.Embeds
+                            .Where(e => e.Video != null && !e.Video.Playlist.IsNullOrEmpty())
+                            .ToList();
+                        if (embedsWithVideo.Any()) {
+                            var embedVideos = embedsWithVideo.Select(e => e.Video);
+                            foreach (var embedVideo in embedVideos) {
+                                var videoBlock = SlackBlockCreator.CreateVideoBlock(embedVideos.First());
+                                unfurl.Blocks.Add(videoBlock);
+                            }
+
                         }
                     }
                 }

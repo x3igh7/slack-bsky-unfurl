@@ -1,7 +1,10 @@
-﻿namespace SlackBskyUnfurl.Models.Bsky
+﻿using Newtonsoft.Json;
+
+namespace SlackBskyUnfurl.Models.Bsky
 {
     public class Embed : RecordWithMedia
     {
+        [JsonProperty("$type")]
         public string Type { get; set; }
         public AspectRatio? AspectRatio { get; set; }
         public External External { get; set; }
