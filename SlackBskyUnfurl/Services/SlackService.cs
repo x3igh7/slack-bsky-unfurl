@@ -147,9 +147,10 @@ public class SlackService : ISlackService {
                 { link.Url, unfurl }
             };
 
-            this._logger.LogDebug($"Unfurl Result: {JsonConvert.SerializeObject(unfurl, new JsonSerializerSettings {
+            var jsonResult = JsonConvert.SerializeObject(unfurl, new JsonSerializerSettings {
                 MetadataPropertyHandling = MetadataPropertyHandling.Ignore
-            })}");
+            });
+            this._logger.LogDebug($"Unfurl Result: {jsonResult}");
 
             try {
                 await this.Client.Chat.Unfurl(
