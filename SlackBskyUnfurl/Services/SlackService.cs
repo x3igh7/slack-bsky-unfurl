@@ -1,15 +1,12 @@
 ﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using SlackBskyUnfurl.Data;
 using SlackBskyUnfurl.Data.Models;
-using SlackBskyUnfurl.Models.Bsky;
 using SlackBskyUnfurl.Models.Slack;
 using SlackBskyUnfurl.Services.Interfaces;
 using SlackNet;
-using SlackNet.Blocks;
 using SlackNet.Events;
 using LinkShared = SlackBskyUnfurl.Models.Slack.LinkShared;
 
@@ -127,114 +124,7 @@ public class SlackService : ISlackService {
                 throw new InvalidOperationException("No result from post.");
             }
 
-            var unfurl = new Attachment {
-                Blocks = new List<Block>()
-            };
-
-            var topContextBlock = SlackBlockCreator.CreateTopContextBlock();
-            unfurl.Blocks.Add(topContextBlock);
-
-            var postTextBlock = SlackBlockCreator.CreatePostTextBlock(unfurlResult);
-            unfurl.Blocks.Add(postTextBlock);
-
-            if (unfurlResult.Thread.Post.Embed != null) {
-                if (unfurlResult.Thread.Post.Embed.External != null) {
-                    var contextBlock =
-                        SlackBlockCreator.CreateLinkContextBlock(unfurlResult.Thread.Post.Embed.External.Uri);
-                    unfurl.Blocks.Add(contextBlock);
-
-                    var externalBlock = SlackBlockCreator.CreateExternalBlock(unfurlResult);
-                    unfurl.Blocks.Add(externalBlock);
-                }
-
-                // If the post has images, add them.
-                if (unfurlResult.Thread.Post.Embed.Images != null && unfurlResult.Thread.Post.Embed.Images.Any()) {
-                    var imageBlocks = SlackBlockCreator.CreateImageViewBlocks(unfurlResult.Thread.Post.Embed.Images);
-                    imageBlocks.ForEach(i => unfurl.Blocks.Add(i));
-                }
-
-                // if the post had video, add it
-                if (unfurlResult.Thread.Post.Embed != null &&
-                    !unfurlResult.Thread.Post.Embed.Playlist.IsNullOrEmpty()) {
-                    var videoBlock = SlackBlockCreator.CreateVideoBlock(unfurlResult.Thread.Post.Embed);
-                    unfurl.Blocks.Add(videoBlock);
-                }
-
-                // If the post has media, add it.
-                // This happens when a post with an image is a repost of another post
-                if (unfurlResult.Thread.Post.Embed.Media?.Images != null &&
-                    unfurlResult.Thread.Post.Embed.Media.Images.Any()) {
-                    var mediaImages = unfurlResult.Thread.Post.Embed.Media.Images;
-                    var imageBlocks = SlackBlockCreator.CreateImageViewBlocks(mediaImages);
-                    imageBlocks.ForEach(i => unfurl.Blocks.Add(i));
-                }
-
-                // check for media video
-                if (unfurlResult.Thread.Post.Embed.Media?.Video != null &&
-                    !unfurlResult.Thread.Post.Embed.Media.Video.Playlist.IsNullOrEmpty())
-                {
-                    var mediaVideo = unfurlResult.Thread.Post.Embed.Media.Video;
-                    var videoBlock = SlackBlockCreator.CreateVideoBlock(mediaVideo);
-                    unfurl.Blocks.Add(videoBlock);
-                }
-
-                // I honestly have no idea why there are different types of embeds here, bluesky seems very inconsistent for some reason on this
-                var embedRecord = unfurlResult.Thread.Post.Embed.Record?.Record ??
-                                  unfurlResult.Thread.Post.Embed.Record;
-                if (embedRecord != null) {
-                    var embedTextBlock = SlackBlockCreator.CreateRecordViewTextBlock(embedRecord, true);
-                    unfurl.Blocks.Add(embedTextBlock);
-
-                    // Add link if the sub record references yet another record
-                    if (embedRecord.Embeds.Any(e => e.Record != null)) {
-                        var recordEmbed = embedRecord.Embeds.FirstOrDefault(e => e.Record != null);
-                        if (recordEmbed != null) {
-                            var recordLinkBlock = SlackBlockCreator.CreateEmbedViewRecordLinkBlock(recordEmbed);
-                            if (recordLinkBlock != null) {
-                                unfurl.Blocks.Add(recordLinkBlock);
-                            }
-                        }
-                    }
-
-                    // If the sub record has an external link, add it
-                    if (embedRecord.Embeds.Any(e => e.External != null)) {
-                        var externalEmbed = embedRecord.Embeds.FirstOrDefault(e => e.External != null);
-                        if (externalEmbed != null) {
-                            var contextBlock =
-                                SlackBlockCreator.CreateLinkContextBlock(externalEmbed.External.Uri, true);
-                            unfurl.Blocks.Add(contextBlock);
-
-                            var linkToPost = SlackBlockCreator.CreateEmbedExternalLinkBlock(externalEmbed);
-                            unfurl.Blocks.Add(linkToPost);
-                        }
-                    }
-
-                    //If the sub record has images, add them
-                    if (embedRecord.Embeds.Any(e => e.Images != null && e.Images.Any())) {
-                        var embedsWithImages = embedRecord.Embeds.Where(e => e.Images != null && e.Images.Any())
-                            .ToList();
-                        if (embedsWithImages.Any()) {
-                            var embedImages = embedsWithImages
-                                .Where(images => images.Images != null && images.Images.Any())
-                                .SelectMany(images => images.Images ?? Array.Empty<ImageView>());
-                            var imageBlocks = SlackBlockCreator.CreateImageViewBlocks(embedImages);
-                            imageBlocks.ForEach(i => unfurl.Blocks.Add(i));
-                        }
-                    }
-
-                    // if the sub record has video, add it
-                    if (embedRecord.Embeds.Any(e => e.Type.Contains("video") && !e.Playlist.IsNullOrEmpty())) {
-                        var embedsWithVideo = embedRecord.Embeds
-                            .Where(e => e.Type.Contains("video") && !e.Playlist.IsNullOrEmpty())
-                            .ToList();
-                        if (embedsWithVideo.Any()) {
-                            foreach (var videoBlock in embedsWithVideo.Select(SlackBlockCreator.CreateVideoBlock)) {
-                                unfurl.Blocks.Add(videoBlock);
-                            }
-                        }
-                    }
-                }
-            }
+            var unfurl = SlackBlockCreator.CreateBlueSkyUnfurl(unfurlResult);
 
             var unfurls = new Dictionary<string, Attachment> {
                 { link.Url, unfurl }
