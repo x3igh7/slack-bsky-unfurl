@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using SlackBskyUnfurl.Data;
 using SlackBskyUnfurl.Data.Models;
+using SlackBskyUnfurl.Models.Bsky.Responses;
 using SlackBskyUnfurl.Models.Slack;
 using SlackBskyUnfurl.Services.Interfaces;
 using SlackNet;
@@ -119,12 +120,28 @@ public class SlackService : ISlackService {
             this._logger.LogInformation(
                 $"Unfurling link {link.Url} in channel {linkSharedEvent.Channel} at timestamp {linkSharedEvent.MessageTs}");
 
-            var unfurlResult = await this._blueSky.HandleGetPostThreadRequest(link.Url);
+
+            GetPostThreadResponse? unfurlResult = null;
+            try {
+                unfurlResult = await this._blueSky.HandleGetPostThreadRequest(link.Url);
+            }
+            catch (Exception e) {
+                this._logger.LogError(e, "Error retrieving post.");
+                throw;
+            }
+
             if (unfurlResult == null) {
                 throw new InvalidOperationException("No result from post.");
             }
 
-            var unfurl = SlackBlockCreator.CreateBlueSkyUnfurl(unfurlResult);
+            Attachment unfurl;
+            try {
+                unfurl = SlackBlockCreator.CreateBlueSkyUnfurl(unfurlResult);
+            }
+            catch (Exception e) {
+                this._logger.LogError(e, "Error creating unfurl.");
+                throw;
+            }
 
             var unfurls = new Dictionary<string, Attachment> {
                 { link.Url, unfurl }
