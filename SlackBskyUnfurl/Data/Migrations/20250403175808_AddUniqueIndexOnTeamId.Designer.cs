@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SlackBskyUnfurl.Data;
 
@@ -11,9 +12,11 @@ using SlackBskyUnfurl.Data;
 namespace SlackBskyUnfurl.Migrations
 {
     [DbContext(typeof(SlackBskyContext))]
-    partial class SlackBskyUnfurlContextModelSnapshot : ModelSnapshot
+    [Migration("20250403175808_AddUniqueIndexOnTeamId")]
+    partial class AddUniqueIndexOnTeamId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
