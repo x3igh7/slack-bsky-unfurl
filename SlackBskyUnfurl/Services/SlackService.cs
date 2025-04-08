@@ -20,7 +20,7 @@ public class SlackService : ISlackService {
     private readonly ILogger<SlackService> _logger;
     public ISlackApiClient? Client;
 
-    public SlackService(IBlueSkyService blueSkyService, SlackBskyContext context, IConfiguration configuration,
+    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration,
         ILogger<SlackService> logger) {
         this._blueSky = blueSkyService;
         this._configuration = configuration;
