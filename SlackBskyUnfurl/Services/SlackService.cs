@@ -20,16 +20,12 @@ public class SlackService : ISlackService {
     private readonly ILogger<SlackService> _logger;
     public ISlackApiClient? Client;
 
-    public SlackService(IBlueSkyService blueSkyService, IConfiguration configuration,
+    public SlackService(IBlueSkyService blueSkyService, SlackBskyContext context, IConfiguration configuration,
         ILogger<SlackService> logger) {
         this._blueSky = blueSkyService;
         this._configuration = configuration;
         this._logger = logger;
-
-        var contextOptions = new DbContextOptionsBuilder<SlackBskyContext>()
-            .UseSqlServer(this._configuration.GetConnectionString("Remote"))
-            .Options;
-        this._dbcontext = new SlackBskyContext(contextOptions);
+        this._dbcontext = context;
     }
 
     public async Task<bool> SaveAccessToken(ScopeResponse accessResponse) {

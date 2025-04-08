@@ -62,8 +62,6 @@ public class SlackController : Controller {
             this._cache.Remove(state);
         }
 
-        var test = this._configuration.GetConnectionString("Remote");
-
         var accessContent = new Dictionary<string, string> {
             { "client_id", this._configuration["SlackClientId"]! },
             { "client_secret", this._configuration["SlackClientSecret"]! },

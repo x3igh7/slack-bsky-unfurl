@@ -171,10 +171,4 @@ public class BlueSkyService : IBlueSkyService {
         this.HttpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", this._accessToken);
     }
-
-    /// TODO: this can be removed and try to use metadata property handling
-    private string ReplacePropertyNames(string content) {
-        content = content.Replace("$type", "type").Replace("$link", "link");
-        return content;
-    }
 }
