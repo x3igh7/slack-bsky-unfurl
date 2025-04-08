@@ -16,7 +16,7 @@ namespace SlackBskyUnfurl.Services;
 public class SlackService : ISlackService {
     private readonly IBlueSkyService _blueSky;
     private readonly IConfiguration _configuration;
-    private readonly SlackBskyContext _dbcontext;
+    private readonly DbContextOptionsBuilder<SlackBskyContext> _dbContextOptionsBuilder;
     private readonly ILogger<SlackService> _logger;
     public ISlackApiClient? Client;
 
@@ -25,17 +25,21 @@ public class SlackService : ISlackService {
         this._blueSky = blueSkyService;
         this._configuration = configuration;
         this._logger = logger;
-        this._dbcontext = context;
+
+        // setup dbContext options
+        this._dbContextOptionsBuilder = new DbContextOptionsBuilder<SlackBskyContext>();
+        this._dbContextOptionsBuilder.UseSqlServer(this._configuration.GetConnectionString("Remote"));
     }
 
     public async Task<bool> SaveAccessToken(ScopeResponse accessResponse) {
         try {
+            await using var dbContext = new SlackBskyContext(this._dbContextOptionsBuilder.Options);
             var existingWorkspace =
-                await this._dbcontext.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == accessResponse.Team.Id);
+                await dbContext.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == accessResponse.Team.Id);
             if (existingWorkspace != null) {
                 existingWorkspace.AccessToken = accessResponse.AccessToken;
                 try {
-                    await this._dbcontext.SaveChangesAsync();
+                    await dbContext.SaveChangesAsync();
                 }
                 catch (Exception e) {
                     throw new InvalidOperationException(
@@ -45,12 +49,12 @@ public class SlackService : ISlackService {
             }
             else {
                 try {
-                    this._dbcontext.AuthorizedWorkspaces.Add(new AuthorizedWorkspaceEntity {
+                    dbContext.AuthorizedWorkspaces.Add(new AuthorizedWorkspaceEntity {
                         Id = Guid.NewGuid(),
                         TeamId = accessResponse.Team.Id,
                         AccessToken = accessResponse.AccessToken
                     });
-                    await this._dbcontext.SaveChangesAsync();
+                    await dbContext.SaveChangesAsync();
                 }
                 catch (Exception e) {
                     throw new InvalidOperationException(
@@ -163,7 +167,8 @@ public class SlackService : ISlackService {
 
     private async Task<string> GetAccessToken(string teamId) {
         try {
-            var workspace = await this._dbcontext.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == teamId);
+            await using var dbContext = new SlackBskyContext(this._dbContextOptionsBuilder.Options);
+            var workspace = await dbContext.AuthorizedWorkspaces.FirstOrDefaultAsync(w => w.TeamId == teamId);
             if (workspace == null || string.IsNullOrEmpty(workspace.AccessToken)) {
                 this._logger.LogError($"No access token found for team {teamId}");
                 throw new InvalidOperationException($"No access token found for team {teamId}");

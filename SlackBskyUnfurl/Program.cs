@@ -1,5 +1,3 @@
-using SlackBskyUnfurl.Data;
-using Microsoft.EntityFrameworkCore;
 using SlackBskyUnfurl.Services;
 using SlackBskyUnfurl.Services.Interfaces;
 
@@ -15,26 +13,22 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddSnapshotCollector();
 
-builder.Services.AddDbContext<SlackBskyContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Remote")));
-
 builder.Services.AddScoped<ISlackService, SlackService>();
 builder.Services.AddSingleton<IBlueSkyService, BlueSkyService>();
 
 builder.Services.AddMemoryCache();
 
-builder.Services.AddCors(options => options.AddDefaultPolicy(policyBuilder =>
-    {
-        policyBuilder
-            .AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    }));
+builder.Services.AddCors(options => options.AddDefaultPolicy(policyBuilder => {
+    policyBuilder
+        .AllowAnyOrigin()
+        .AllowAnyHeader()
+        .AllowAnyMethod();
+}));
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+if (app.Environment.IsDevelopment()) {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
